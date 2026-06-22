@@ -11,13 +11,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 async function loadConfig() {
     try {
         const response = await fetch('/api/config');
+        if (!response.ok) {
+            throw new Error('Failed to load config');
+        }
         const config = await response.json();
         
         document.getElementById('pexels_api_key').value = config.pexels_api_key || '';
         document.getElementById('pixabay_api_key').value = config.pixabay_api_key || '';
+        
+        showMessage('Configuration loaded successfully', 'success');
     } catch (error) {
         console.error('Failed to load config:', error);
-        showMessage('Failed to load configuration', 'error');
+        showMessage('Failed to load configuration. Using default keys.', 'error');
     }
 }
 
@@ -42,10 +47,16 @@ async function saveConfig() {
             })
         });
         
-        if (response.ok) {
-            showMessage('✅ Configuration saved successfully!', 'success');
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+            showMessage('✅ ' + data.message, 'success');
+            // Update main page config
+            if (window.opener) {
+                window.opener.postMessage({ type: 'configUpdated', config: { pexels_api_key: pexelsKey, pixabay_api_key: pixabayKey } }, '*');
+            }
         } else {
-            showMessage('❌ Failed to save configuration', 'error');
+            showMessage('❌ ' + (data.error || 'Failed to save configuration'), 'error');
         }
     } catch (error) {
         console.error('Failed to save config:', error);
@@ -62,4 +73,9 @@ function showMessage(message, type) {
             ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400' 
             : 'border-red-500/30 bg-red-500/10 text-red-400'
     }`;
+    
+    // Auto hide after 5 seconds
+    setTimeout(() => {
+        container.classList.add('hidden');
+    }, 5000);
 }
