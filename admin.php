@@ -1,10 +1,11 @@
 <?php
-// admin.php - Admin Panel with User Management
+// admin.php - Admin Panel with User Management (MD5 + bcrypt support)
 session_start();
 
-// Admin login check
+// Admin login check - Support both MD5 and bcrypt
 $ADMIN_USERNAME = 'admin';
-$ADMIN_PASSWORD_HASH = '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi'; // password: admin123
+$ADMIN_PASSWORD_HASH = '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi'; // bcrypt: admin123
+$ADMIN_PASSWORD_MD5 = '0192023a7bbd73250516f069df18b500'; // MD5: admin123
 
 $isLoggedIn = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'] === true;
 
@@ -13,7 +14,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['admin_login'])) {
     $username = $_POST['username'] ?? '';
     $password = $_POST['password'] ?? '';
     
-    if ($username === $ADMIN_USERNAME && password_verify($password, $ADMIN_PASSWORD_HASH)) {
+    // Check both MD5 and bcrypt
+    $passwordValid = false;
+    
+    // Check MD5
+    if (md5($password) === $ADMIN_PASSWORD_MD5) {
+        $passwordValid = true;
+    }
+    
+    // Check bcrypt
+    if (!$passwordValid && password_verify($password, $ADMIN_PASSWORD_HASH)) {
+        $passwordValid = true;
+    }
+    
+    if ($username === $ADMIN_USERNAME && $passwordValid) {
         $_SESSION['admin_logged_in'] = true;
         $isLoggedIn = true;
     } else {
@@ -68,8 +82,14 @@ if ($isLoggedIn && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_cr
 // Get all users
 $users = [];
 if ($isLoggedIn) {
-    $stmt = $pdo->query("SELECT id, username, email, credits, created_at FROM users ORDER BY id DESC");
-    $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    // Check if JSON or MySQL
+    if (file_exists('users.json')) {
+        $data = json_decode(file_get_contents('users.json'), true);
+        $users = $data['users'] ?? [];
+    } elseif (isset($pdo)) {
+        $stmt = $pdo->query("SELECT id, username, email, credits, created_at FROM users ORDER BY id DESC");
+        $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -180,26 +200,27 @@ if ($isLoggedIn) {
                             </tr>
                         </thead>
                         <tbody>
-                            <?php foreach ($users as $user): ?>
-                            <tr class="border-b border-slate-800/50 hover:bg-slate-900/30 transition">
-                                <td class="py-3 px-4 text-slate-400">#<?php echo $user['id']; ?></td>
-                                <td class="py-3 px-4 font-medium"><?php echo htmlspecialchars($user['username']); ?></td>
-                                <td class="py-3 px-4 text-slate-400"><?php echo htmlspecialchars($user['email']); ?></td>
-                                <td class="py-3 px-4 text-center">
-                                    <span class="text-yellow-400 font-bold"><?php echo $user['credits']; ?></span>
-                                </td>
-                                <td class="py-3 px-4 text-slate-500 text-xs"><?php echo date('M d, Y', strtotime($user['created_at'])); ?></td>
-                                <td class="py-3 px-4 text-center">
-                                    <button onclick="openAddCredits(<?php echo $user['id']; ?>, '<?php echo htmlspecialchars($user['username']); ?>')" 
-                                            class="text-xs bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 px-3 py-1 rounded-full border border-emerald-500/20 transition">
-                                        ➕ Add Credits
-                                    </button>
-                                </td>
-                            </tr>
-                            <?php endforeach; ?>
-                            <?php if (empty($users)): ?>
+                            <?php if (!empty($users)): ?>
+                                <?php foreach ($users as $user): ?>
+                                <tr class="border-b border-slate-800/50 hover:bg-slate-900/30 transition">
+                                    <td class="py-3 px-4 text-slate-400">#<?php echo $user['id']; ?></td>
+                                    <td class="py-3 px-4 font-medium"><?php echo htmlspecialchars($user['username']); ?></td>
+                                    <td class="py-3 px-4 text-slate-400"><?php echo htmlspecialchars($user['email']); ?></td>
+                                    <td class="py-3 px-4 text-center">
+                                        <span class="text-yellow-400 font-bold"><?php echo $user['credits']; ?></span>
+                                    </td>
+                                    <td class="py-3 px-4 text-slate-500 text-xs"><?php echo isset($user['created_at']) ? date('M d, Y', strtotime($user['created_at'])) : 'N/A'; ?></td>
+                                    <td class="py-3 px-4 text-center">
+                                        <button onclick="openAddCredits(<?php echo $user['id']; ?>, '<?php echo htmlspecialchars($user['username']); ?>')" 
+                                                class="text-xs bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 px-3 py-1 rounded-full border border-emerald-500/20 transition">
+                                            ➕ Add Credits
+                                        </button>
+                                    </td>
+                                </tr>
+                                <?php endforeach; ?>
+                            <?php else: ?>
                             <tr>
-                                <td colspan="6" class="py-8 text-center text-slate-500">No users yet</td>
+                                <td colspan="6" class="py-8 text-center text-slate-500">No users found</td>
                             </tr>
                             <?php endif; ?>
                         </tbody>
@@ -212,12 +233,12 @@ if ($isLoggedIn) {
                 <form method="POST" class="space-y-4 max-w-2xl">
                     <div>
                         <label class="block text-sm font-medium text-slate-300 mb-1">🔑 Pexels API Key</label>
-                        <input type="text" name="pexels_api_key" value="<?php echo htmlspecialchars($config['pexels_api_key']); ?>" 
+                        <input type="text" name="pexels_api_key" value="<?php echo htmlspecialchars($config['pexels_api_key'] ?? ''); ?>" 
                                class="input-dark w-full px-4 py-3 rounded-xl text-sm font-mono">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-slate-300 mb-1">🔑 Pixabay API Key</label>
-                        <input type="text" name="pixabay_api_key" value="<?php echo htmlspecialchars($config['pixabay_api_key']); ?>" 
+                        <input type="text" name="pixabay_api_key" value="<?php echo htmlspecialchars($config['pixabay_api_key'] ?? ''); ?>" 
                                class="input-dark w-full px-4 py-3 rounded-xl text-sm font-mono">
                     </div>
                     <button type="submit" name="save_config" class="bg-gradient-to-r from-cyan-400 to-indigo-500 text-slate-950 font-bold px-6 py-3 rounded-xl hover:opacity-90 transition">
