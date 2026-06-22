@@ -18,6 +18,7 @@ if ($isLoggedIn) {
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="google-site-verification" content="1JqJl6ZluFSjwzGu8DJlZh7xP6klEzwwdQGa4-BzMs8" />
     <title>CYBER ARBAB - AI Script-to-Video Engine v3.2</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <style>
