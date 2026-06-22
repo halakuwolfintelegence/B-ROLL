@@ -1,27 +1,101 @@
 <?php
-// config.php - Configuration file with database
+// config.php - JSON Storage (No Database)
 session_start();
 
-// Database Configuration
-$DB_HOST = 'localhost';
-$DB_NAME = 'video_engine';
-$DB_USER = 'root';
-$DB_PASS = '';
+// User storage file
+$usersFile = __DIR__ . '/users.json';
 
-try {
-    $pdo = new PDO("mysql:host=$DB_HOST;dbname=$DB_NAME;charset=utf8mb4", $DB_USER, $DB_PASS);
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch(PDOException $e) {
-    die("Database connection failed: " . $e->getMessage());
+// Initialize users file
+if (!file_exists($usersFile)) {
+    file_put_contents($usersFile, json_encode([
+        'users' => [
+            [
+                'id' => 1,
+                'username' => 'admin',
+                'email' => 'admin@admin.com',
+                'password' => password_hash('admin123', PASSWORD_DEFAULT),
+                'credits' => 999,
+                'created_at' => date('Y-m-d H:i:s')
+            ]
+        ],
+        'next_id' => 2
+    ], JSON_PRETTY_PRINT));
 }
 
-// Default API keys
+function getUsers() {
+    global $usersFile;
+    if (!file_exists($usersFile)) return [];
+    $data = json_decode(file_get_contents($usersFile), true);
+    return $data['users'] ?? [];
+}
+
+function getUserByEmail($email) {
+    $users = getUsers();
+    foreach ($users as $user) {
+        if ($user['email'] === $email) {
+            return $user;
+        }
+    }
+    return null;
+}
+
+function getUserById($id) {
+    $users = getUsers();
+    foreach ($users as $user) {
+        if ($user['id'] == $id) {
+            return $user;
+        }
+    }
+    return null;
+}
+
+function createUser($username, $email, $password) {
+    global $usersFile;
+    $data = json_decode(file_get_contents($usersFile), true);
+    
+    $user = [
+        'id' => $data['next_id']++,
+        'username' => $username,
+        'email' => $email,
+        'password' => password_hash($password, PASSWORD_DEFAULT),
+        'credits' => 10,
+        'created_at' => date('Y-m-d H:i:s')
+    ];
+    
+    $data['users'][] = $user;
+    file_put_contents($usersFile, json_encode($data, JSON_PRETTY_PRINT));
+    return true;
+}
+
+function updateUserCredits($userId, $credits) {
+    global $usersFile;
+    $data = json_decode(file_get_contents($usersFile), true);
+    
+    foreach ($data['users'] as &$user) {
+        if ($user['id'] == $userId) {
+            $user['credits'] += $credits;
+            file_put_contents($usersFile, json_encode($data, JSON_PRETTY_PRINT));
+            return true;
+        }
+    }
+    return false;
+}
+
+function getUserCredits($userId) {
+    $user = getUserById($userId);
+    return $user ? $user['credits'] : 0;
+}
+
+function deductCredit($userId) {
+    return updateUserCredits($userId, -1);
+}
+
+// API keys config
 $config = [
     'pexels_api_key' => 'hPfLL2XaPl3rVFEHXNaQbZstXrX1vZMSxmuvN9tqrAwbpXSZhdVL3Blm',
     'pixabay_api_key' => '56395196-037a4e0daa26799bb7627b4f3'
 ];
 
-// Load saved config from file
 $configFile = __DIR__ . '/config_data.json';
 if (file_exists($configFile)) {
     $savedConfig = json_decode(file_get_contents($configFile), true);
@@ -30,7 +104,6 @@ if (file_exists($configFile)) {
     }
 }
 
-// Function to save config
 function saveConfig($pexelsKey, $pixabayKey) {
     global $configFile;
     $data = [
@@ -38,40 +111,5 @@ function saveConfig($pexelsKey, $pixabayKey) {
         'pixabay_api_key' => $pixabayKey
     ];
     return file_put_contents($configFile, json_encode($data, JSON_PRETTY_PRINT));
-}
-
-// User Functions
-function getUserByEmail($email) {
-    global $pdo;
-    $stmt = $pdo->prepare("SELECT * FROM users WHERE email = ?");
-    $stmt->execute([$email]);
-    return $stmt->fetch(PDO::FETCH_ASSOC);
-}
-
-function createUser($username, $email, $password) {
-    global $pdo;
-    $hashed = password_hash($password, PASSWORD_DEFAULT);
-    $stmt = $pdo->prepare("INSERT INTO users (username, email, password, credits) VALUES (?, ?, ?, 10)");
-    return $stmt->execute([$username, $email, $hashed]);
-}
-
-function updateUserCredits($userId, $credits) {
-    global $pdo;
-    $stmt = $pdo->prepare("UPDATE users SET credits = credits + ? WHERE id = ?");
-    return $stmt->execute([$credits, $userId]);
-}
-
-function deductCredit($userId) {
-    global $pdo;
-    $stmt = $pdo->prepare("UPDATE users SET credits = credits - 1 WHERE id = ? AND credits > 0");
-    return $stmt->execute([$userId]);
-}
-
-function getUserCredits($userId) {
-    global $pdo;
-    $stmt = $pdo->prepare("SELECT credits FROM users WHERE id = ?");
-    $stmt->execute([$userId]);
-    $result = $stmt->fetch(PDO::FETCH_ASSOC);
-    return $result ? $result['credits'] : 0;
 }
 ?>
