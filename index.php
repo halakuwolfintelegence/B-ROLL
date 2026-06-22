@@ -1,0 +1,309 @@
+<?php
+// index.php - Main Video Engine Page
+require_once 'config.php';
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CYBER ARBAB - AI Script-to-Video Engine v3.2</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+        body { background-color: #090d16; }
+        .glass-panel {
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.6) 0%, rgba(30, 41, 59, 0.4) 100%);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+        .video-card:hover .video-overlay { opacity: 1; }
+        .glowing-text { text-shadow: 0 0 20px rgba(34, 211, 238, 0.3); }
+        @keyframes fadeIn { 
+            from { opacity: 0; transform: translateY(12px); } 
+            to { opacity: 1; transform: translateY(0); } 
+        }
+        .animate-fade-in { animation: fadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .admin-link {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body class="text-slate-100 min-h-screen font-sans antialiased selection:bg-cyan-500 selection:text-slate-900">
+    <div class="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[400px] bg-gradient-to-r from-cyan-500/10 via-indigo-500/5 to-fuchsia-500/10 blur-[120px] pointer-events-none rounded-full"></div>
+    
+    <div class="max-w-7xl mx-auto px-6 py-8 relative z-10">
+        <header class="mb-12 text-center">
+            <div class="inline-flex items-center gap-2 bg-gradient-to-r from-cyan-950 to-slate-900 border border-cyan-500/30 px-4 py-1.5 rounded-full text-xs font-bold tracking-widest text-cyan-400 mb-6 shadow-[0_0_15px_rgba(6,182,212,0.15)] uppercase">
+                <span class="inline-block w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+                Upgraded by CYBER ARBAB
+            </div>
+            <h1 class="text-4xl font-black tracking-tight sm:text-6xl bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent mb-4">
+                Cinematic Script-to-Video Engine
+            </h1>
+            <p class="text-slate-400 max-w-2xl mx-auto text-sm sm:text-base font-light leading-relaxed">
+                Advanced AI-powered asset pipeline extracting contextual semantic tags to match 100% premium video tracks.
+            </p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <div class="lg:col-span-4 space-y-6">
+                <div class="glass-panel p-6 rounded-2xl shadow-2xl relative overflow-hidden">
+                    <div class="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-cyan-500 via-indigo-500 to-fuchsia-500"></div>
+                    
+                    <div class="flex justify-between items-center mb-5">
+                        <h2 class="text-base font-bold text-slate-200 flex items-center gap-2 tracking-wide uppercase text-xs">
+                            🎬 Input Workspace
+                        </h2>
+                        <span class="text-[10px] font-mono tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-0.5 rounded-md font-semibold">PURE VIDEO NODES ONLINE</span>
+                    </div>
+
+                    <textarea id="scriptInput" rows="11" placeholder="Paste your script blocks here..." class="w-full bg-slate-950/70 border border-slate-800 rounded-xl p-4 text-sm focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/20 transition-all resize-y text-slate-200 placeholder-slate-600 leading-relaxed font-light">
+The future of artificial intelligence is transforming everyday work.
+Cyberpunk cities are glowing with neon lights under the rain.
+Take a deep breath and connect with the calm, morning nature.
+                    </textarea>
+
+                    <button id="processBtn" class="mt-5 w-full bg-gradient-to-r from-cyan-400 via-indigo-500 to-fuchsia-500 text-slate-950 font-extrabold py-4 px-4 rounded-xl transition-all shadow-lg hover:shadow-indigo-500/20 hover:scale-[1.01] flex justify-center items-center gap-2 cursor-pointer tracking-wider text-xs uppercase group">
+                        🤖 AI Generate Match Pipeline (6 Unique Videos)
+                    </button>
+                </div>
+                
+                <div class="bg-slate-900/30 p-4 rounded-xl border border-slate-900 text-center">
+                    <p class="text-xs text-slate-500 font-light">
+                        🛡️ Safe parsing enabled. Rate-limiting overrides active to protect API connections.
+                    </p>
+                </div>
+            </div>
+
+            <div class="lg:col-span-8 space-y-6">
+                <div class="glass-panel p-6 rounded-2xl shadow-2xl min-h-[515px]">
+                    <div class="flex justify-between items-center mb-6 border-b border-slate-800 pb-4">
+                        <h2 class="text-lg font-bold text-slate-200 tracking-tight flex items-center gap-2">
+                            🎬 AI Production Storyboard
+                        </h2>
+                        <span id="statusBadge" class="hidden px-3 py-1 bg-cyan-500/10 text-cyan-400 text-xs font-bold rounded-full border border-cyan-500/20 tracking-wide uppercase">Ready</span>
+                    </div>
+
+                    <div id="loader" class="hidden flex-col items-center justify-center py-32 space-y-5">
+                        <div class="relative w-12 h-12">
+                            <div class="absolute inset-0 rounded-full border-2 border-slate-800"></div>
+                            <div class="absolute inset-0 rounded-full border-t-2 border-cyan-400 animate-spin"></div>
+                        </div>
+                        <p id="loaderText" class="text-slate-400 text-xs tracking-widest uppercase font-semibold animate-pulse glowing-text">
+                            Analyzing Script Semantics...
+                        </p>
+                    </div>
+
+                    <div id="resultsContainer" class="space-y-8">
+                        <div class="text-center py-28 text-slate-600 flex flex-col items-center justify-center">
+                            <div class="w-12 h-12 rounded-full border border-dashed border-slate-800 flex items-center justify-center text-slate-500 mb-4 text-lg">📁</div>
+                            <p class="text-sm font-medium text-slate-400">Interactive timeline is empty.</p>
+                            <p class="text-xs text-slate-500 mt-1 max-w-xs">Write or modify your script sequence on the left, then trigger AI generation.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer class="mt-16 text-center border-t border-slate-900 pt-8 pb-4">
+            <p class="text-xs text-slate-600 tracking-widest uppercase font-medium">
+                Automated Media Matching System • Architecture by <span class="text-slate-400 font-bold hover:text-cyan-400 transition-colors">CYBER ARBAB</span>
+            </p>
+        </footer>
+    </div>
+
+    <a href="admin.php" class="admin-link bg-slate-800 hover:bg-slate-700 text-cyan-400 text-xs font-bold px-4 py-3 rounded-full border border-cyan-500/30 shadow-lg transition-all hover:scale-105 flex items-center gap-2">
+        ⚙️ Admin Panel
+    </a>
+
+    <script>
+        // Pass PHP config to JavaScript
+        const API_CONFIG = {
+            PEXELS_API_KEY: "<?php echo addslashes($config['pexels_api_key']); ?>",
+            PIXABAY_API_KEY: "<?php echo addslashes($config['pixabay_api_key']); ?>"
+        };
+
+        // Premium Pure Video Fallback Pool
+        const premiumVideoPool = [
+            { tags: ['ai', 'tech', 'future', 'data', 'work'], url: 'https://assets.mixkit.co/videos/preview/mixkit-man-holding-a-smartphone-with-a-blue-screen-40176-large.mp4', thumb: 'https://images.pexels.com/photos/6153354/pexels-photo-6153354.jpeg?auto=compress&cs=tinysrgb&w=400', engine: 'Artgrid Stream Node' },
+            { tags: ['cyberpunk', 'city', 'night', 'rain', 'neon'], url: 'https://assets.mixkit.co/videos/preview/mixkit-time-lapse-of-a-city-at-night-4158-large.mp4', thumb: 'https://images.pexels.com/photos/1612513/pexels-photo-1612513.jpeg?auto=compress&cs=tinysrgb&w=400', engine: 'Coverr Premium Video' },
+            { tags: ['nature', 'forest', 'calm', 'trees', 'morning'], url: 'https://assets.mixkit.co/videos/preview/mixkit-aerial-view-of-a-dense-forest-2280-large.mp4', thumb: 'https://images.pexels.com/photos/3225517/pexels-photo-3225517.jpeg?auto=compress&cs=tinysrgb&w=400', engine: 'Mixkit Video Node' },
+            { tags: ['code', 'work', 'office', 'software', 'ai'], url: 'https://assets.mixkit.co/videos/preview/mixkit-coding-on-a-computer-screen-with-a-neon-light-42217-large.mp4', thumb: 'https://images.pexels.com/photos/546814/pexels-photo-546814.jpeg?auto=compress&cs=tinysrgb&w=400', engine: 'Coverr Core Video' },
+            { tags: ['business', 'team', 'meeting', 'work'], url: 'https://assets.mixkit.co/videos/preview/mixkit-hands-of-a-man-typing-on-a-laptop-4173-large.mp4', thumb: 'https://images.pexels.com/photos/3183150/pexels-photo-3183150.jpeg?auto=compress&cs=tinysrgb&w=400', engine: 'Storyblocks Video Node' },
+            { tags: ['ocean', 'water', 'beach', 'waves', 'nature'], url: 'https://assets.mixkit.co/videos/preview/mixkit-waves-coming-to-the-beach-5016-large.mp4', thumb: 'https://images.pexels.com/photos/1001682/pexels-photo-1001682.jpeg?auto=compress&cs=tinysrgb&w=400', engine: 'Envato Elements Video' },
+            { tags: ['space', 'stars', 'galaxy', 'universe', 'future'], url: 'https://assets.mixkit.co/videos/preview/mixkit-stars-in-space-1610-large.mp4', thumb: 'https://images.pexels.com/photos/116975/pexels-photo-116975.jpeg?auto=compress&cs=tinysrgb&w=400', engine: 'Videezy Pro Video' },
+            { tags: ['cyberpunk', 'neon', 'city', 'night'], url: 'https://assets.mixkit.co/videos/preview/mixkit-neon-light-from-a-building-signage-at-night-42220-large.mp4', thumb: 'https://images.pexels.com/photos/2387873/pexels-photo-2387873.jpeg?auto=compress&cs=tinysrgb&w=400', engine: 'Cyber Matrix Node' },
+            { tags: ['nature', 'calm', 'morning', 'water'], url: 'https://assets.mixkit.co/videos/preview/mixkit-sunlight-filtering-through-trees-near-a-river-43034-large.mp4', thumb: 'https://images.pexels.com/photos/1424971/pexels-photo-1424971.jpeg?auto=compress&cs=tinysrgb&w=400', engine: 'Vidsplay HD Node' },
+            { tags: ['ai', 'tech', 'code', 'data'], url: 'https://assets.mixkit.co/videos/preview/mixkit-abstract-laser-lights-background-41855-large.mp4', thumb: 'https://images.pexels.com/photos/2582937/pexels-photo-2582937.jpeg?auto=compress&cs=tinysrgb&w=400', engine: 'MotionArray Core' }
+        ];
+
+        document.getElementById('processBtn').addEventListener('click', async () => {
+            const scriptText = document.getElementById('scriptInput').value.trim();
+            if (!scriptText) { alert('Please enter your script parameters into the workspace.'); return; }
+
+            const container = document.getElementById('resultsContainer');
+            const loader = document.getElementById('loader');
+            const loaderText = document.getElementById('loaderText');
+            const status = document.getElementById('statusBadge');
+            
+            container.innerHTML = '';
+            loader.classList.remove('hidden');
+            status.classList.remove('hidden');
+            status.textContent = 'Mapping Scenes...';
+
+            // Fixed: Split on newlines OR sentence endings
+            const lines = scriptText
+                .split(/\n+|(?<=[.!?])\s+(?=[A-Z])/)
+                .map(l => l.trim())
+                .filter(l => l.length > 5);
+
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+                loaderText.textContent = `AI Processing Sequence #${i+1}...`;
+                
+                const keywords = extractKeywords(line);
+                const displayKeywords = keywords.length > 0 ? keywords : ['abstract', 'motion'];
+
+                const sceneElement = document.createElement('div');
+                sceneElement.className = "bg-slate-900/40 p-5 rounded-2xl border border-slate-800/50 space-y-4 shadow-sm animate-fade-in";
+                sceneElement.innerHTML = `
+                    <div class="flex flex-wrap justify-between items-start gap-3 border-b border-slate-800/60 pb-3">
+                        <p class="text-xs sm:text-sm font-medium text-slate-300 max-w-xl leading-relaxed">
+                            <span class="text-cyan-400 font-bold font-mono mr-1">Scene #${i+1}</span> "${line}"
+                        </p>
+                        <div class="flex gap-1 text-[10px] bg-slate-950 px-2.5 py-0.5 rounded-md text-cyan-400 font-mono tracking-wider border border-cyan-900/30 uppercase font-bold">
+                            Tags: ${displayKeywords.join(', ')}
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 video-grid-target">
+                        <div class="col-span-full text-center py-4 text-xs text-slate-600 animate-pulse font-light tracking-wide">Querying remote stock assets...</div>
+                    </div>
+                `;
+                container.appendChild(sceneElement);
+
+                await dispatchMediaRequests(displayKeywords, sceneElement.querySelector('.video-grid-target'));
+                
+                // Rate Limiting - 1.2 second delay between requests
+                if (i < lines.length - 1) {
+                    await new Promise(resolve => setTimeout(resolve, 1200));
+                }
+            }
+
+            loader.classList.add('hidden');
+            status.textContent = `Completed (${lines.length} Sequences Mixed)`;
+        });
+
+        function extractKeywords(text) {
+            const stopWords = new Set(['i','me','my','the','and','but','if','or','because','as','until','while','of','at','by','for','with','about','in','on','at','under','underneath','this','that','these','those','then']);
+            return text.toLowerCase().replace(/[^a-zA-Z\s]/g, '').split(/\s+/).filter(word => word.length > 2 && !stopWords.has(word)).slice(0, 3);
+        }
+
+        async function dispatchMediaRequests(keywords, gridTarget) {
+            const query = encodeURIComponent(keywords.join(' '));
+            let collectedPool = [];
+            let seenUrls = new Set();
+
+            // 1. Fetch Pexels Network Node
+            if (API_CONFIG.PEXELS_API_KEY && API_CONFIG.PEXELS_API_KEY !== "YOUR_PEXELS_API_KEY_HERE") {
+                try {
+                    const res = await fetch(`https://api.pexels.com/videos/search?query=${query}&per_page=8&orientation=landscape`, { 
+                        headers: { Authorization: API_CONFIG.PEXELS_API_KEY }
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data.videos) {
+                            data.videos.forEach(v => {
+                                const file = v.video_files.find(f => f.quality === 'hd' || f.width >= 1280) || v.video_files[0];
+                                if (file && !seenUrls.has(file.link)) {
+                                    seenUrls.add(file.link);
+                                    collectedPool.push({ 
+                                        source: 'Pexels Video Node', 
+                                        pageUrl: v.url, 
+                                        videoUrl: file.link, 
+                                        previewImg: v.image 
+                                    });
+                                }
+                            });
+                        }
+                    }
+                } catch (e) { console.error("Pexels lookup fault", e); }
+            }
+
+            // 2. Fetch Pixabay Stream Node
+            if (API_CONFIG.PIXABAY_API_KEY && API_CONFIG.PIXABAY_API_KEY !== "YOUR_PIXABAY_API_KEY_HERE" && collectedPool.length < 6) {
+                try {
+                    const res = await fetch(`https://pixabay.com/api/videos/?key=${API_CONFIG.PIXABAY_API_KEY}&q=${query}&per_page=8&orientation=landscape`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data.hits) {
+                            data.hits.forEach(v => {
+                                const file = v.videos.medium || v.videos.small;
+                                if (file && !seenUrls.has(file.url)) {
+                                    seenUrls.add(file.url);
+                                    collectedPool.push({ 
+                                        source: 'Pixabay Video Node', 
+                                        pageUrl: v.pageURL, 
+                                        videoUrl: file.url, 
+                                        previewImg: `https://i.vimeocdn.com/video/${v.picture_id}_640x360.jpg` 
+                                    });
+                                }
+                            });
+                        }
+                    }
+                } catch (e) { console.error("Pixabay lookup fault", e); }
+            }
+
+            // 3. Fallback Mix - FIXED: Ensures exactly 6 unique videos
+            if (collectedPool.length < 6) {
+                let matchedFallbacks = premiumVideoPool.filter(item => 
+                    item.tags.some(tag => keywords.includes(tag))
+                );
+                let allFallbacks = [...premiumVideoPool].sort(() => 0.5 - Math.random());
+                let combinedFallbacks = [...matchedFallbacks, ...allFallbacks];
+
+                for (let item of combinedFallbacks) {
+                    if (collectedPool.length >= 6) break;
+                    if (!seenUrls.has(item.url)) {
+                        seenUrls.add(item.url);
+                        collectedPool.push({ 
+                            source: item.engine, 
+                            pageUrl: item.url, 
+                            videoUrl: item.url, 
+                            previewImg: item.thumb 
+                        });
+                    }
+                }
+            }
+
+            // Enforce exactly 6 unique items
+            collectedPool = collectedPool.slice(0, 6);
+
+            gridTarget.innerHTML = '';
+            collectedPool.forEach((vid) => {
+                const card = document.createElement('div');
+                card.className = "relative group aspect-video bg-slate-950 rounded-xl overflow-hidden border border-slate-800/40 video-card shadow-lg transition-all duration-300 hover:border-cyan-500/30 hover:shadow-[0_4px_20px_rgba(6,182,212,0.1)]";
+                card.innerHTML = `
+                    <img src="${vid.previewImg}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out" onerror="this.src='https://images.pexels.com/photos/3165335/pexels-photo-3165335.jpeg?auto=compress&cs=tinysrgb&w=300'">
+                    <div class="absolute inset-0 bg-slate-950/90 opacity-0 video-overlay transition-opacity duration-200 flex flex-col justify-between p-3.5">
+                        <span class="self-start text-[9px] uppercase font-bold tracking-widest px-2 py-0.5 rounded bg-slate-900 border border-slate-800/80 text-cyan-400">
+                            ${vid.source}
+                        </span>
+                        <div class="space-y-2">
+                            <a href="${vid.videoUrl}" target="_blank" download class="w-full text-center bg-gradient-to-r from-cyan-400 to-indigo-500 hover:opacity-95 text-slate-950 text-xs font-black py-2 px-3 rounded-lg transition-all flex items-center justify-center gap-1.5 tracking-wider uppercase cursor-pointer shadow-md">
+                                📥 Download Video
+                            </a>
+                            <a href="${vid.videoUrl}" target="_blank" class="block text-center bg-slate-900/80 hover:bg-slate-800 text-slate-400 text-[10px] py-1.5 px-2 rounded-lg border border-slate-800/60 transition-colors tracking-wide">
+                                Preview Video
+                            </a>
+                        </div>
+                    </div>
+                `;
+                gridTarget.appendChild(card);
+            });
+        }
+    </script>
+</body>
+</html>
