@@ -1,8 +1,20 @@
 name = "cyber-arbab-video"
-type = "pages"
 compatibility_date = "2024-12-18"
-pages_build_output_dir = "public"
 
-[vars]
-PEXELS_API_KEY = "hPfLL2XaPl3rVFEHXNaQbZstXrX1vZMSxmuvN9tqrAwbpXSZhdVL3Blm"
-PIXABAY_API_KEY = "56395196-037a4e0daa26799bb7627b4f3"
+# For Pages Projects, don't use "type" field
+# Assets configuration
+[assets]
+directory = "./public"
+binding = "ASSETS"
+
+# KV Namespace for config storage
+[[kv_namespaces]]
+binding = "KV_NAMESPACE"
+id = "YOUR_KV_NAMESPACE_ID"  # Replace with your KV ID
+
+# Environment variables for production
+[env.production]
+vars = { 
+    PEXELS_API_KEY = "hPfLL2XaPl3rVFEHXNaQbZstXrX1vZMSxmuvN9tqrAwbpXSZhdVL3Blm",
+    PIXABAY_API_KEY = "56395196-037a4e0daa26799bb7627b4f3" 
+}
