@@ -133,7 +133,9 @@ Take a deep breath and connect with the calm, morning nature.
                 
                 <div class="bg-slate-900/30 p-4 rounded-xl border border-slate-900 text-center">
                     <p class="text-xs text-slate-500 font-light">
-                        🛡️ Safe parsing enabled. Rate-limiting overrides active to protect API connections.
+                        🛡️ Safe parsing enabled. Rate-limiting overrides active to protect API connections
+                                                       (1 SEARCH = 1 CREDIT
+                                      SEARCH CAN BE A WORD, PARAGRAPH, PAGE OR ENTIRE SCRIPT 
                     </p>
                 </div>
             </div>
