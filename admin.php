@@ -1,32 +1,26 @@
 <?php
-// admin.php - Admin Panel with Login System
+// admin.php - Admin Panel with User Management
 session_start();
 
-// ===== LOGIN CONFIGURATION =====
-// Change these credentials
+// Admin login check
 $ADMIN_USERNAME = 'admin';
-$ADMIN_PASSWORD = 'cyber123'; // Change karo!
+$ADMIN_PASSWORD_HASH = '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi'; // password: admin123
 
-// Check if already logged in
 $isLoggedIn = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'] === true;
 
-// Handle Login
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
-    $username = isset($_POST['username']) ? trim($_POST['username']) : '';
-    $password = isset($_POST['password']) ? trim($_POST['password']) : '';
+// Handle Admin Login
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['admin_login'])) {
+    $username = $_POST['username'] ?? '';
+    $password = $_POST['password'] ?? '';
     
-    if ($username === $ADMIN_USERNAME && $password === $ADMIN_PASSWORD) {
+    if ($username === $ADMIN_USERNAME && password_verify($password, $ADMIN_PASSWORD_HASH)) {
         $_SESSION['admin_logged_in'] = true;
         $isLoggedIn = true;
-        $loginMessage = '✅ Login successful!';
-        $loginMessageType = 'success';
     } else {
-        $loginMessage = '❌ Invalid username or password!';
-        $loginMessageType = 'error';
+        $error = 'Invalid credentials!';
     }
 }
 
-// Handle Logout
 if (isset($_GET['logout'])) {
     session_destroy();
     header('Location: admin.php');
@@ -39,10 +33,10 @@ require_once 'config.php';
 $message = '';
 $messageType = '';
 
-// Handle form submission (only if logged in)
+// Handle API config save
 if ($isLoggedIn && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_config'])) {
-    $pexelsKey = isset($_POST['pexels_api_key']) ? trim($_POST['pexels_api_key']) : '';
-    $pixabayKey = isset($_POST['pixabay_api_key']) ? trim($_POST['pixabay_api_key']) : '';
+    $pexelsKey = trim($_POST['pexels_api_key'] ?? '');
+    $pixabayKey = trim($_POST['pixabay_api_key'] ?? '');
     
     if (saveConfig($pexelsKey, $pixabayKey)) {
         $message = '✅ API keys updated successfully!';
@@ -50,9 +44,32 @@ if ($isLoggedIn && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_c
         $config['pexels_api_key'] = $pexelsKey;
         $config['pixabay_api_key'] = $pixabayKey;
     } else {
-        $message = '❌ Failed to save configuration. Please check file permissions.';
+        $message = '❌ Failed to save configuration.';
         $messageType = 'error';
     }
+}
+
+// Handle Add Credits
+if ($isLoggedIn && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_credits'])) {
+    $userId = (int)$_POST['user_id'];
+    $credits = (int)$_POST['credits'];
+    
+    if ($userId > 0 && $credits > 0) {
+        if (updateUserCredits($userId, $credits)) {
+            $message = "✅ Added $credits credits to user!";
+            $messageType = 'success';
+        } else {
+            $message = '❌ Failed to add credits';
+            $messageType = 'error';
+        }
+    }
+}
+
+// Get all users
+$users = [];
+if ($isLoggedIn) {
+    $stmt = $pdo->query("SELECT id, username, email, credits, created_at FROM users ORDER BY id DESC");
+    $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 ?>
 <!DOCTYPE html>
@@ -60,7 +77,7 @@ if ($isLoggedIn && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_c
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Admin Panel - CYBER ARBAB Video Engine</title>
+    <title>Admin Panel - CYBER ARBAB</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <style>
         body { background-color: #090d16; }
@@ -77,224 +94,188 @@ if ($isLoggedIn && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_c
         }
         .input-dark:focus {
             border-color: rgba(34, 211, 238, 0.5);
-            box-shadow: 0 0 20px rgba(34, 211, 238, 0.1);
             outline: none;
         }
-        .login-box {
-            max-width: 400px;
-            margin: 0 auto;
-        }
-        .password-toggle {
-            position: absolute;
-            right: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            cursor: pointer;
-            color: #64748b;
+        .tab-btn {
+            padding: 8px 20px;
+            border-radius: 10px;
+            border: 1px solid rgba(71, 85, 105, 0.3);
             background: transparent;
-            border: none;
-            font-size: 14px;
-        }
-        .password-toggle:hover {
             color: #94a3b8;
+            cursor: pointer;
+            transition: all 0.3s ease;
         }
-        .input-wrapper {
-            position: relative;
+        .tab-btn.active {
+            background: rgba(34, 211, 238, 0.15);
+            border-color: rgba(34, 211, 238, 0.3);
+            color: #22d3ee;
         }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     </style>
 </head>
-<body class="text-slate-100 min-h-screen font-sans antialiased">
-    <div class="max-w-4xl mx-auto px-6 py-12">
+<body class="text-slate-100 min-h-screen">
+    <div class="max-w-6xl mx-auto px-6 py-8">
         
         <!-- Back Button -->
-        <div class="mb-8">
-            <a href="index.php" class="text-cyan-400 hover:text-cyan-300 text-sm font-medium flex items-center gap-2 transition-colors">
-                ← Back to Video Engine
-            </a>
+        <div class="mb-6">
+            <a href="index.php" class="text-cyan-400 hover:text-cyan-300 text-sm">← Back to Engine</a>
         </div>
 
-        <!-- ===== LOGIN FORM ===== -->
         <?php if (!$isLoggedIn): ?>
-        <div class="glass-panel p-8 rounded-2xl shadow-2xl relative overflow-hidden login-box">
-            <div class="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-cyan-500 via-indigo-500 to-fuchsia-500"></div>
-            
-            <div class="text-center mb-8">
-                <div class="w-16 h-16 rounded-full bg-gradient-to-br from-cyan-500/20 to-indigo-500/20 flex items-center justify-center text-3xl mx-auto border border-cyan-500/20">
-                    🔐
-                </div>
-                <h1 class="text-2xl font-bold text-slate-200 mt-4">Admin Login</h1>
-                <p class="text-sm text-slate-500 mt-1">Enter your credentials to continue</p>
-            </div>
-
-            <?php if (isset($loginMessage)): ?>
-                <div class="mb-6 p-4 rounded-xl border <?php echo $loginMessageType === 'success' ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400' : 'border-red-500/30 bg-red-500/10 text-red-400'; ?>">
-                    <?php echo $loginMessage; ?>
-                </div>
+        <!-- Admin Login -->
+        <div class="max-w-md mx-auto glass-panel p-8 rounded-2xl">
+            <h1 class="text-2xl font-bold text-center mb-6">🔐 Admin Login</h1>
+            <?php if (isset($error)): ?>
+                <div class="mb-4 p-3 bg-red-500/10 border border-red-500/30 text-red-400 rounded-lg text-sm"><?php echo $error; ?></div>
             <?php endif; ?>
-
-            <form method="POST" class="space-y-5">
-                <div>
-                    <label for="username" class="block text-sm font-medium text-slate-300 mb-2">
-                        👤 Username
-                    </label>
-                    <input 
-                        type="text" 
-                        id="username" 
-                        name="username" 
-                        class="input-dark w-full px-4 py-3 rounded-xl text-sm"
-                        placeholder="Enter username"
-                        required
-                        autofocus
-                    />
-                </div>
-
-                <div>
-                    <label for="password" class="block text-sm font-medium text-slate-300 mb-2">
-                        🔑 Password
-                    </label>
-                    <div class="input-wrapper">
-                        <input 
-                            type="password" 
-                            id="password" 
-                            name="password" 
-                            class="input-dark w-full px-4 py-3 rounded-xl text-sm pr-12"
-                            placeholder="Enter password"
-                            required
-                        />
-                        <button type="button" onclick="togglePassword()" class="password-toggle">
-                            👁️
-                        </button>
-                    </div>
-                </div>
-
-                <button type="submit" name="login" class="w-full bg-gradient-to-r from-cyan-400 via-indigo-500 to-fuchsia-500 text-slate-950 font-extrabold py-4 rounded-xl transition-all shadow-lg hover:shadow-indigo-500/20 hover:scale-[1.01] tracking-wider text-sm uppercase">
-                    🚀 Login
-                </button>
+            <form method="POST">
+                <input type="text" name="username" placeholder="Username" class="input-dark w-full px-4 py-3 rounded-xl mb-4" required>
+                <input type="password" name="password" placeholder="Password" class="input-dark w-full px-4 py-3 rounded-xl mb-4" required>
+                <button type="submit" name="admin_login" class="w-full bg-gradient-to-r from-cyan-400 to-indigo-500 text-slate-950 font-bold py-3 rounded-xl">Login</button>
             </form>
-
-            <div class="mt-6 p-4 bg-slate-900/30 rounded-xl border border-slate-800/50">
-                <p class="text-xs text-slate-500 text-center">
-                    🔒 Default: <span class="text-cyan-400 font-mono">admin / cyber123</span><br>
-                    <span class="text-[10px] text-slate-600">Change credentials in admin.php file</span>
-                </p>
-            </div>
+            <p class="text-center text-xs text-slate-500 mt-4">Default: admin / admin123</p>
         </div>
-        <?php endif; ?>
+        <?php else: ?>
 
-        <!-- ===== ADMIN PANEL (Logged In) ===== -->
-        <?php if ($isLoggedIn): ?>
-        <div class="glass-panel p-8 rounded-2xl shadow-2xl relative overflow-hidden">
+        <!-- Admin Panel -->
+        <div class="glass-panel p-8 rounded-2xl relative overflow-hidden">
             <div class="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-cyan-500 via-indigo-500 to-fuchsia-500"></div>
             
             <!-- Header -->
-            <div class="flex items-center justify-between mb-8">
-                <div class="flex items-center gap-3">
-                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500/20 to-indigo-500/20 flex items-center justify-center text-2xl border border-cyan-500/20">
-                        ⚙️
-                    </div>
-                    <div>
-                        <h1 class="text-2xl font-bold text-slate-200">Admin Control Panel</h1>
-                        <p class="text-sm text-slate-500">Manage API keys and system configuration</p>
-                    </div>
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h1 class="text-2xl font-bold text-slate-200">⚙️ Admin Panel</h1>
+                    <p class="text-sm text-slate-500">Manage users, credits & API keys</p>
                 </div>
-                <a href="?logout=1" class="bg-red-500/20 hover:bg-red-500/30 text-red-400 px-4 py-2 rounded-lg text-sm font-medium transition-colors border border-red-500/20">
-                    🚪 Logout
-                </a>
+                <a href="?logout=1" class="text-red-400 hover:text-red-300 text-sm">🚪 Logout</a>
             </div>
 
-            <!-- Status Messages -->
+            <!-- Tabs -->
+            <div class="flex gap-2 mb-6 border-b border-slate-800/50 pb-4">
+                <button class="tab-btn active" onclick="switchTab('users')">👥 Users</button>
+                <button class="tab-btn" onclick="switchTab('config')">🔑 API Keys</button>
+            </div>
+
+            <!-- Message -->
             <?php if ($message): ?>
-                <div class="mb-6 p-4 rounded-xl border <?php echo $messageType === 'success' ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400' : 'border-red-500/30 bg-red-500/10 text-red-400'; ?>">
+                <div class="mb-4 p-3 rounded-lg border <?php echo $messageType === 'success' ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400' : 'border-red-500/30 bg-red-500/10 text-red-400'; ?>">
                     <?php echo $message; ?>
                 </div>
             <?php endif; ?>
 
-            <!-- Config Form -->
-            <form method="POST" class="space-y-6">
-                <div>
-                    <label for="pexels_api_key" class="block text-sm font-medium text-slate-300 mb-2">
-                        🔑 Pexels API Key
-                    </label>
-                    <input 
-                        type="text" 
-                        id="pexels_api_key" 
-                        name="pexels_api_key" 
-                        value="<?php echo htmlspecialchars($config['pexels_api_key']); ?>" 
-                        class="input-dark w-full px-4 py-3 rounded-xl text-sm font-mono"
-                        placeholder="Enter your Pexels API key"
-                    />
-                    <p class="text-xs text-slate-500 mt-2">
-                        Get your key from <a href="https://www.pexels.com/api/" target="_blank" class="text-cyan-400 hover:underline">pexels.com/api</a>
-                    </p>
+            <!-- ===== USERS TAB ===== -->
+            <div id="tab-users" class="tab-content active">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="text-left text-slate-500 border-b border-slate-800">
+                                <th class="py-3 px-4">ID</th>
+                                <th class="py-3 px-4">Username</th>
+                                <th class="py-3 px-4">Email</th>
+                                <th class="py-3 px-4 text-center">Credits</th>
+                                <th class="py-3 px-4">Joined</th>
+                                <th class="py-3 px-4 text-center">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($users as $user): ?>
+                            <tr class="border-b border-slate-800/50 hover:bg-slate-900/30 transition">
+                                <td class="py-3 px-4 text-slate-400">#<?php echo $user['id']; ?></td>
+                                <td class="py-3 px-4 font-medium"><?php echo htmlspecialchars($user['username']); ?></td>
+                                <td class="py-3 px-4 text-slate-400"><?php echo htmlspecialchars($user['email']); ?></td>
+                                <td class="py-3 px-4 text-center">
+                                    <span class="text-yellow-400 font-bold"><?php echo $user['credits']; ?></span>
+                                </td>
+                                <td class="py-3 px-4 text-slate-500 text-xs"><?php echo date('M d, Y', strtotime($user['created_at'])); ?></td>
+                                <td class="py-3 px-4 text-center">
+                                    <button onclick="openAddCredits(<?php echo $user['id']; ?>, '<?php echo htmlspecialchars($user['username']); ?>')" 
+                                            class="text-xs bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 px-3 py-1 rounded-full border border-emerald-500/20 transition">
+                                        ➕ Add Credits
+                                    </button>
+                                </td>
+                            </tr>
+                            <?php endforeach; ?>
+                            <?php if (empty($users)): ?>
+                            <tr>
+                                <td colspan="6" class="py-8 text-center text-slate-500">No users yet</td>
+                            </tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
                 </div>
-
-                <div>
-                    <label for="pixabay_api_key" class="block text-sm font-medium text-slate-300 mb-2">
-                        🔑 Pixabay API Key
-                    </label>
-                    <input 
-                        type="text" 
-                        id="pixabay_api_key" 
-                        name="pixabay_api_key" 
-                        value="<?php echo htmlspecialchars($config['pixabay_api_key']); ?>" 
-                        class="input-dark w-full px-4 py-3 rounded-xl text-sm font-mono"
-                        placeholder="Enter your Pixabay API key"
-                    />
-                    <p class="text-xs text-slate-500 mt-2">
-                        Get your key from <a href="https://pixabay.com/api/docs/" target="_blank" class="text-cyan-400 hover:underline">pixabay.com/api/docs</a>
-                    </p>
-                </div>
-
-                <div class="pt-4 border-t border-slate-800/50 flex gap-4">
-                    <button type="submit" name="save_config" class="flex-1 bg-gradient-to-r from-cyan-400 via-indigo-500 to-fuchsia-500 text-slate-950 font-extrabold py-4 px-6 rounded-xl transition-all shadow-lg hover:shadow-indigo-500/20 hover:scale-[1.01] tracking-wider text-sm uppercase">
-                        💾 Save Configuration
-                    </button>
-                    <a href="index.php" class="px-6 py-4 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition-all text-sm font-medium flex items-center gap-2 border border-slate-700/50">
-                        🏠 Return to Engine
-                    </a>
-                </div>
-            </form>
-
-            <!-- Security Info -->
-            <div class="mt-8 p-4 bg-slate-900/30 rounded-xl border border-slate-800/50">
-                <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">🔒 Security Notes</h3>
-                <ul class="text-xs text-slate-500 space-y-1 list-disc list-inside">
-                    <li>API keys are stored locally in <code class="bg-slate-800 px-1.5 py-0.5 rounded text-cyan-400">config_data.json</code></li>
-                    <li>Never share your API keys publicly</li>
-                    <li>Keys are used only for client-side requests</li>
-                    <li>Session expires when browser is closed</li>
-                </ul>
             </div>
 
-            <!-- Session Info -->
-            <div class="mt-4 text-right">
-                <span class="text-[10px] text-slate-600">
-                    Logged in as: <span class="text-cyan-400 font-mono"><?php echo htmlspecialchars($ADMIN_USERNAME); ?></span>
-                </span>
+            <!-- ===== CONFIG TAB ===== -->
+            <div id="tab-config" class="tab-content">
+                <form method="POST" class="space-y-4 max-w-2xl">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-1">🔑 Pexels API Key</label>
+                        <input type="text" name="pexels_api_key" value="<?php echo htmlspecialchars($config['pexels_api_key']); ?>" 
+                               class="input-dark w-full px-4 py-3 rounded-xl text-sm font-mono">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-1">🔑 Pixabay API Key</label>
+                        <input type="text" name="pixabay_api_key" value="<?php echo htmlspecialchars($config['pixabay_api_key']); ?>" 
+                               class="input-dark w-full px-4 py-3 rounded-xl text-sm font-mono">
+                    </div>
+                    <button type="submit" name="save_config" class="bg-gradient-to-r from-cyan-400 to-indigo-500 text-slate-950 font-bold px-6 py-3 rounded-xl hover:opacity-90 transition">
+                        💾 Save API Keys
+                    </button>
+                </form>
+            </div>
+
+            <!-- Add Credits Modal -->
+            <div id="creditModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+                <div class="glass-panel p-6 rounded-2xl max-w-md w-full">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-bold text-slate-200">➕ Add Credits</h3>
+                        <button onclick="closeCreditModal()" class="text-slate-400 hover:text-white text-xl">✕</button>
+                    </div>
+                    <p class="text-sm text-slate-400 mb-4">User: <span id="creditUsername" class="text-cyan-400"></span></p>
+                    <form method="POST" class="space-y-4">
+                        <input type="hidden" name="user_id" id="creditUserId">
+                        <div>
+                            <label class="block text-sm text-slate-300 mb-1">Number of Credits</label>
+                            <input type="number" name="credits" id="creditAmount" class="input-dark w-full px-4 py-3 rounded-xl" min="1" value="10" required>
+                        </div>
+                        <button type="submit" name="add_credits" class="w-full bg-gradient-to-r from-emerald-500 to-cyan-500 text-slate-950 font-bold py-3 rounded-xl hover:opacity-90 transition">
+                            ✅ Add Credits
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
-        <?php endif; ?>
 
-        <footer class="mt-12 text-center border-t border-slate-900 pt-6">
-            <p class="text-xs text-slate-600 tracking-widest uppercase font-medium">
-                Automated Media Matching System • Architecture by <span class="text-slate-400 font-bold">CYBER ARBAB</span>
-            </p>
-        </footer>
+        <?php endif; ?>
     </div>
 
     <script>
-        // Password Toggle
-        function togglePassword() {
-            const input = document.getElementById('password');
-            const button = document.querySelector('.password-toggle');
-            if (input.type === 'password') {
-                input.type = 'text';
-                button.textContent = '🙈';
-            } else {
-                input.type = 'password';
-                button.textContent = '👁️';
-            }
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.getElementById('tab-' + tab).classList.add('active');
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.querySelector(`[onclick="switchTab('${tab}')"]`).classList.add('active');
         }
+
+        function openAddCredits(userId, username) {
+            document.getElementById('creditUserId').value = userId;
+            document.getElementById('creditUsername').textContent = username;
+            document.getElementById('creditModal').classList.remove('hidden');
+            document.getElementById('creditModal').style.display = 'flex';
+        }
+
+        function closeCreditModal() {
+            document.getElementById('creditModal').style.display = 'none';
+        }
+
+        // Close modal on outside click
+        document.getElementById('creditModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.style.display = 'none';
+            }
+        });
     </script>
 </body>
 </html>
