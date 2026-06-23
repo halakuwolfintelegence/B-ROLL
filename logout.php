@@ -1,10 +1,11 @@
 <?php
-// logout.php - Clear session and cookie
+// logout.php - Clear all sessions and cookies
 session_start();
 session_destroy();
 
-// Clear cookie
+// Clear all cookies
 setcookie('user_session', '', time() - 3600, '/');
+setcookie('remember_token', '', time() - 3600, '/');
 
 header('Location: index.php');
 exit;
