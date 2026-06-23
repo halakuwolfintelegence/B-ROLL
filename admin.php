@@ -1,11 +1,11 @@
 <?php
-// admin.php - Admin Panel with User Management (MD5 + bcrypt support)
+// admin.php - Admin Panel with User Management
 session_start();
 
 // Admin login check - Support both MD5 and bcrypt
 $ADMIN_USERNAME = 'admin';
-$ADMIN_PASSWORD_HASH = '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi'; // bcrypt: admin123
-$ADMIN_PASSWORD_MD5 = '0192023a7bbd73250516f069df18b500'; // MD5: admin123
+$ADMIN_PASSWORD_HASH = '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi';
+$ADMIN_PASSWORD_MD5 = '0192023a7bbd73250516f069df18b500';
 
 $isLoggedIn = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'] === true;
 
@@ -14,15 +14,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['admin_login'])) {
     $username = $_POST['username'] ?? '';
     $password = $_POST['password'] ?? '';
     
-    // Check both MD5 and bcrypt
     $passwordValid = false;
-    
-    // Check MD5
     if (md5($password) === $ADMIN_PASSWORD_MD5) {
         $passwordValid = true;
     }
-    
-    // Check bcrypt
     if (!$passwordValid && password_verify($password, $ADMIN_PASSWORD_HASH)) {
         $passwordValid = true;
     }
@@ -41,7 +36,6 @@ if (isset($_GET['logout'])) {
     exit;
 }
 
-// ===== CONFIG LOAD =====
 require_once 'config.php';
 
 $message = '';
@@ -82,14 +76,7 @@ if ($isLoggedIn && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_cr
 // Get all users
 $users = [];
 if ($isLoggedIn) {
-    // Check if JSON or MySQL
-    if (file_exists('users.json')) {
-        $data = json_decode(file_get_contents('users.json'), true);
-        $users = $data['users'] ?? [];
-    } elseif (isset($pdo)) {
-        $stmt = $pdo->query("SELECT id, username, email, credits, created_at FROM users ORDER BY id DESC");
-        $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    }
+    $users = getUsers();
 }
 ?>
 <!DOCTYPE html>
@@ -138,13 +125,11 @@ if ($isLoggedIn) {
 <body class="text-slate-100 min-h-screen">
     <div class="max-w-6xl mx-auto px-6 py-8">
         
-        <!-- Back Button -->
         <div class="mb-6">
             <a href="index.php" class="text-cyan-400 hover:text-cyan-300 text-sm">← Back to Engine</a>
         </div>
 
         <?php if (!$isLoggedIn): ?>
-        <!-- Admin Login -->
         <div class="max-w-md mx-auto glass-panel p-8 rounded-2xl">
             <h1 class="text-2xl font-bold text-center mb-6">🔐 Admin Login</h1>
             <?php if (isset($error)): ?>
@@ -159,11 +144,9 @@ if ($isLoggedIn) {
         </div>
         <?php else: ?>
 
-        <!-- Admin Panel -->
         <div class="glass-panel p-8 rounded-2xl relative overflow-hidden">
             <div class="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-cyan-500 via-indigo-500 to-fuchsia-500"></div>
             
-            <!-- Header -->
             <div class="flex justify-between items-center mb-6">
                 <div>
                     <h1 class="text-2xl font-bold text-slate-200">⚙️ Admin Panel</h1>
@@ -172,20 +155,17 @@ if ($isLoggedIn) {
                 <a href="?logout=1" class="text-red-400 hover:text-red-300 text-sm">🚪 Logout</a>
             </div>
 
-            <!-- Tabs -->
             <div class="flex gap-2 mb-6 border-b border-slate-800/50 pb-4">
                 <button class="tab-btn active" onclick="switchTab('users')">👥 Users</button>
                 <button class="tab-btn" onclick="switchTab('config')">🔑 API Keys</button>
             </div>
 
-            <!-- Message -->
             <?php if ($message): ?>
                 <div class="mb-4 p-3 rounded-lg border <?php echo $messageType === 'success' ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400' : 'border-red-500/30 bg-red-500/10 text-red-400'; ?>">
                     <?php echo $message; ?>
                 </div>
             <?php endif; ?>
 
-            <!-- ===== USERS TAB ===== -->
             <div id="tab-users" class="tab-content active">
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm">
@@ -228,7 +208,6 @@ if ($isLoggedIn) {
                 </div>
             </div>
 
-            <!-- ===== CONFIG TAB ===== -->
             <div id="tab-config" class="tab-content">
                 <form method="POST" class="space-y-4 max-w-2xl">
                     <div>
@@ -247,7 +226,6 @@ if ($isLoggedIn) {
                 </form>
             </div>
 
-            <!-- Add Credits Modal -->
             <div id="creditModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
                 <div class="glass-panel p-6 rounded-2xl max-w-md w-full">
                     <div class="flex justify-between items-center mb-4">
@@ -291,7 +269,6 @@ if ($isLoggedIn) {
             document.getElementById('creditModal').style.display = 'none';
         }
 
-        // Close modal on outside click
         document.getElementById('creditModal').addEventListener('click', function(e) {
             if (e.target === this) {
                 this.style.display = 'none';
