@@ -140,7 +140,7 @@ if ($isLoggedIn) {
                 <input type="password" name="password" placeholder="Password" class="input-dark w-full px-4 py-3 rounded-xl mb-4" required>
                 <button type="submit" name="admin_login" class="w-full bg-gradient-to-r from-cyan-400 to-indigo-500 text-slate-950 font-bold py-3 rounded-xl">Login</button>
             </form>
-            <p class="text-center text-xs text-slate-500 mt-4">Default: admin / admin123</p>
+            <p class="text-center text-xs text-slate-500 mt-4">SQL INJECTION TRY NAH KARAIN BCZ ME CHUTIYA NAI HUN</p>
         </div>
         <?php else: ?>
 
