@@ -1,24 +1,12 @@
 <?php
 // index.php - Main Video Engine Page
 require_once 'config.php';
-
-// Check if user is logged in
-$isLoggedIn = isset($_SESSION['user_id']);
-$userCredits = 0;
-$username = '';
-
-if ($isLoggedIn) {
-    $userCredits = getUserCredits($_SESSION['user_id']);
-    $user = getUserByEmail($_SESSION['email']);
-    $username = $user['username'];
-}
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="google-site-verification" content="1JqJl6ZluFSjwzGu8DJlZh7xP6klEzwwdQGa4-BzMs8" />
     <title>CYBER ARBAB - AI Script-to-Video Engine v3.2</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <style>
@@ -64,6 +52,58 @@ if ($isLoggedIn) {
             max-height: 90vh;
             overflow-y: auto;
         }
+        .input-dark {
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid rgba(71, 85, 105, 0.4);
+            color: #e2e8f0;
+            transition: all 0.3s ease;
+        }
+        .input-dark:focus {
+            border-color: rgba(34, 211, 238, 0.5);
+            box-shadow: 0 0 20px rgba(34, 211, 238, 0.1);
+            outline: none;
+        }
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #22d3ee, #818cf8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: #090d16;
+            font-size: 14px;
+        }
+        .tag-badge {
+            display: inline-block;
+            font-size: 9px;
+            background: #0f172a;
+            padding: 2px 8px;
+            border-radius: 6px;
+            color: #22d3ee;
+            font-family: monospace;
+            border: 1px solid rgba(34, 211, 238, 0.2);
+            text-transform: uppercase;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+            margin: 2px;
+        }
+        .tag-more {
+            display: inline-block;
+            font-size: 9px;
+            background: #0f172a;
+            padding: 2px 8px;
+            border-radius: 6px;
+            color: #64748b;
+            font-family: monospace;
+            border: 1px solid rgba(71, 85, 105, 0.3);
+            text-transform: uppercase;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+            margin: 2px;
+            cursor: help;
+        }
     </style>
 </head>
 <body class="text-slate-100 min-h-screen font-sans antialiased selection:bg-cyan-500 selection:text-slate-900">
@@ -80,8 +120,14 @@ if ($isLoggedIn) {
                 <?php if ($isLoggedIn): ?>
                     <div class="credit-badge px-4 py-2 rounded-full text-xs font-bold text-yellow-400 flex items-center gap-2">
                         ⭐ <span id="creditDisplay"><?php echo $userCredits; ?></span> Credits
+                        <button onclick="openModal('buyCreditsModal')" class="text-[10px] bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 px-2 py-0.5 rounded-full transition-colors">
+                            ➕ Buy
+                        </button>
                     </div>
-                    <span class="text-sm text-slate-400">👤 <?php echo htmlspecialchars($username); ?></span>
+                    <div class="flex items-center gap-2">
+                        <div class="user-avatar"><?php echo strtoupper(substr($username, 0, 1)); ?></div>
+                        <span class="text-sm text-slate-300 hidden sm:inline"><?php echo htmlspecialchars($username); ?></span>
+                    </div>
                     <a href="logout.php" class="text-xs text-red-400 hover:text-red-300 transition-colors">Logout</a>
                 <?php else: ?>
                     <button onclick="openModal('loginModal')" class="text-xs text-cyan-400 hover:text-cyan-300 transition-colors">Login</button>
@@ -134,9 +180,7 @@ Take a deep breath and connect with the calm, morning nature.
                 
                 <div class="bg-slate-900/30 p-4 rounded-xl border border-slate-900 text-center">
                     <p class="text-xs text-slate-500 font-light">
-                        🛡️ Safe parsing enabled. Rate-limiting overrides active to protect API connections
-                                                       (1 SEARCH = 1 CREDIT
-                                      SEARCH CAN BE A WORD, PARAGRAPH, PAGE OR ENTIRE SCRIPT 
+                        🛡️ Safe parsing enabled. Rate-limiting overrides active to protect API connections.
                     </p>
                 </div>
             </div>
@@ -194,6 +238,7 @@ Take a deep breath and connect with the calm, morning nature.
                     🔐
                 </div>
                 <h2 class="text-xl font-bold text-slate-200 mt-4">Login</h2>
+                <p class="text-xs text-slate-500">Stay logged in forever with persistent cookies</p>
             </div>
 
             <div id="loginError" class="hidden mb-4 p-3 rounded-lg border border-red-500/30 bg-red-500/10 text-red-400 text-sm"></div>
@@ -206,6 +251,10 @@ Take a deep breath and connect with the calm, morning nature.
                 <div>
                     <label class="block text-sm font-medium text-slate-300 mb-1">Password</label>
                     <input type="password" id="loginPassword" class="input-dark w-full px-4 py-3 rounded-xl text-sm" placeholder="Enter your password" required>
+                </div>
+                <div class="flex items-center gap-2">
+                    <input type="checkbox" id="rememberMe" checked class="w-4 h-4 accent-cyan-500">
+                    <label for="rememberMe" class="text-xs text-slate-400">Remember me forever (1 year)</label>
                 </div>
                 <button type="submit" class="w-full bg-gradient-to-r from-cyan-400 to-indigo-500 text-slate-950 font-bold py-3 rounded-xl hover:opacity-90 transition">
                     🚀 Login
@@ -297,42 +346,8 @@ Take a deep breath and connect with the calm, morning nature.
         </div>
     </div>
 
-    <style>
-        .input-dark {
-            background: rgba(15, 23, 42, 0.8);
-            border: 1px solid rgba(71, 85, 105, 0.4);
-            color: #e2e8f0;
-            transition: all 0.3s ease;
-        }
-        .input-dark:focus {
-            border-color: rgba(34, 211, 238, 0.5);
-            box-shadow: 0 0 20px rgba(34, 211, 238, 0.1);
-            outline: none;
-        }
-        .modal {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.8);
-            backdrop-filter: blur(8px);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-        .modal.active {
-            display: flex;
-        }
-        .modal-content {
-            max-width: 450px;
-            width: 100%;
-            max-height: 90vh;
-            overflow-y: auto;
-        }
-    </style>
-
     <script>
-        // Modal Functions
+        // ===== MODAL FUNCTIONS =====
         function openModal(id) {
             document.getElementById(id).classList.add('active');
             document.body.style.overflow = 'hidden';
@@ -341,7 +356,6 @@ Take a deep breath and connect with the calm, morning nature.
             document.getElementById(id).classList.remove('active');
             document.body.style.overflow = 'auto';
         }
-        // Close modal on outside click
         document.querySelectorAll('.modal').forEach(modal => {
             modal.addEventListener('click', function(e) {
                 if (e.target === this) {
@@ -356,6 +370,7 @@ Take a deep breath and connect with the calm, morning nature.
             e.preventDefault();
             const email = document.getElementById('loginEmail').value;
             const password = document.getElementById('loginPassword').value;
+            const remember = document.getElementById('rememberMe').checked;
             const errorEl = document.getElementById('loginError');
             
             errorEl.classList.add('hidden');
@@ -364,7 +379,7 @@ Take a deep breath and connect with the calm, morning nature.
                 const res = await fetch('login.php', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, password })
+                    body: JSON.stringify({ email, password, remember })
                 });
                 const data = await res.json();
                 
@@ -401,9 +416,12 @@ Take a deep breath and connect with the calm, morning nature.
                 const data = await res.json();
                 
                 if (data.success) {
-                    successEl.textContent = '✅ Account created! Redirecting...';
+                    successEl.textContent = '✅ Account created! Please login.';
                     successEl.classList.remove('hidden');
-                    setTimeout(() => location.reload(), 1500);
+                    setTimeout(() => {
+                        closeModal('registerModal');
+                        openModal('loginModal');
+                    }, 1500);
                 } else {
                     errorEl.textContent = data.message;
                     errorEl.classList.remove('hidden');
@@ -416,12 +434,11 @@ Take a deep breath and connect with the calm, morning nature.
 
         // ===== MAIN ENGINE =====
         <?php if ($isLoggedIn): ?>
-        // Pass PHP config to JavaScript
         const API_CONFIG = {
             PEXELS_API_KEY: "<?php echo addslashes($config['pexels_api_key']); ?>",
             PIXABAY_API_KEY: "<?php echo addslashes($config['pixabay_api_key']); ?>"
         };
-        const USER_ID = <?php echo $_SESSION['user_id']; ?>;
+        const USER_ID = <?php echo $userId; ?>;
         <?php else: ?>
         const API_CONFIG = {
             PEXELS_API_KEY: "<?php echo addslashes($config['pexels_api_key']); ?>",
@@ -434,182 +451,4 @@ Take a deep breath and connect with the calm, morning nature.
             { tags: ['ai', 'tech', 'future', 'data', 'work'], url: 'https://assets.mixkit.co/videos/preview/mixkit-man-holding-a-smartphone-with-a-blue-screen-40176-large.mp4', thumb: 'https://images.pexels.com/photos/6153354/pexels-photo-6153354.jpeg?auto=compress&cs=tinysrgb&w=400', engine: 'Artgrid Stream Node' },
             { tags: ['cyberpunk', 'city', 'night', 'rain', 'neon'], url: 'https://assets.mixkit.co/videos/preview/mixkit-time-lapse-of-a-city-at-night-4158-large.mp4', thumb: 'https://images.pexels.com/photos/1612513/pexels-photo-1612513.jpeg?auto=compress&cs=tinysrgb&w=400', engine: 'Coverr Premium Video' },
             { tags: ['nature', 'forest', 'calm', 'trees', 'morning'], url: 'https://assets.mixkit.co/videos/preview/mixkit-aerial-view-of-a-dense-forest-2280-large.mp4', thumb: 'https://images.pexels.com/photos/3225517/pexels-photo-3225517.jpeg?auto=compress&cs=tinysrgb&w=400', engine: 'Mixkit Video Node' },
-            { tags: ['code', 'work', 'office', 'software', 'ai'], url: 'https://assets.mixkit.co/videos/preview/mixkit-coding-on-a-computer-screen-with-a-neon-light-42217-large.mp4', thumb: 'https://images.pexels.com/photos/546814/pexels-photo-546814.jpeg?auto=compress&cs=tinysrgb&w=400', engine: 'Coverr Core Video' },
-            { tags: ['business', 'team', 'meeting', 'work'], url: 'https://assets.mixkit.co/videos/preview/mixkit-hands-of-a-man-typing-on-a-laptop-4173-large.mp4', thumb: 'https://images.pexels.com/photos/3183150/pexels-photo-3183150.jpeg?auto=compress&cs=tinysrgb&w=400', engine: 'Storyblocks Video Node' },
-            { tags: ['ocean', 'water', 'beach', 'waves', 'nature'], url: 'https://assets.mixkit.co/videos/preview/mixkit-waves-coming-to-the-beach-5016-large.mp4', thumb: 'https://images.pexels.com/photos/1001682/pexels-photo-1001682.jpeg?auto=compress&cs=tinysrgb&w=400', engine: 'Envato Elements Video' },
-            { tags: ['space', 'stars', 'galaxy', 'universe', 'future'], url: 'https://assets.mixkit.co/videos/preview/mixkit-stars-in-space-1610-large.mp4', thumb: 'https://images.pexels.com/photos/116975/pexels-photo-116975.jpeg?auto=compress&cs=tinysrgb&w=400', engine: 'Videezy Pro Video' },
-            { tags: ['cyberpunk', 'neon', 'city', 'night'], url: 'https://assets.mixkit.co/videos/preview/mixkit-neon-light-from-a-building-signage-at-night-42220-large.mp4', thumb: 'https://images.pexels.com/photos/2387873/pexels-photo-2387873.jpeg?auto=compress&cs=tinysrgb&w=400', engine: 'Cyber Matrix Node' },
-            { tags: ['nature', 'calm', 'morning', 'water'], url: 'https://assets.mixkit.co/videos/preview/mixkit-sunlight-filtering-through-trees-near-a-river-43034-large.mp4', thumb: 'https://images.pexels.com/photos/1424971/pexels-photo-1424971.jpeg?auto=compress&cs=tinysrgb&w=400', engine: 'Vidsplay HD Node' },
-            { tags: ['ai', 'tech', 'code', 'data'], url: 'https://assets.mixkit.co/videos/preview/mixkit-abstract-laser-lights-background-41855-large.mp4', thumb: 'https://images.pexels.com/photos/2582937/pexels-photo-2582937.jpeg?auto=compress&cs=tinysrgb&w=400', engine: 'MotionArray Core' }
-        ];
-
-        document.getElementById('processBtn').addEventListener('click', async () => {
-            <?php if (!$isLoggedIn): ?>
-                alert('Please login or register first to generate videos!');
-                openModal('loginModal');
-                return;
-            <?php endif; ?>
-
-            const scriptText = document.getElementById('scriptInput').value.trim();
-            if (!scriptText) { alert('Please enter your script parameters into the workspace.'); return; }
-
-            // Check credits
-            const credits = parseInt(document.getElementById('creditDisplay').textContent);
-            if (credits < 1) {
-                alert('⚠️ You have 0 credits! Please buy more credits to continue.');
-                openModal('buyCreditsModal');
-                return;
-            }
-
-            const container = document.getElementById('resultsContainer');
-            const loader = document.getElementById('loader');
-            const loaderText = document.getElementById('loaderText');
-            const status = document.getElementById('statusBadge');
-            
-            container.innerHTML = '';
-            loader.classList.remove('hidden');
-            status.classList.remove('hidden');
-            status.textContent = 'Mapping Scenes...';
-
-            // Deduct credit
-            try {
-                await fetch('deduct_credit.php', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ user_id: USER_ID })
-                });
-                // Update credit display
-                const newCredits = credits - 1;
-                document.getElementById('creditDisplay').textContent = newCredits;
-                document.getElementById('creditWarning').textContent = newCredits;
-            } catch (e) {
-                console.error('Credit deduction failed');
-            }
-
-            const lines = scriptText.split(/\n+|(?<=[.!?])\s+(?=[A-Z])/).map(l => l.trim()).filter(l => l.length > 5);
-
-            for (let i = 0; i < lines.length; i++) {
-                const line = lines[i];
-                loaderText.textContent = `AI Processing Sequence #${i+1}...`;
-                
-                const keywords = extractKeywords(line);
-                const displayKeywords = keywords.length > 0 ? keywords : ['abstract', 'motion'];
-
-                const sceneElement = document.createElement('div');
-                sceneElement.className = "bg-slate-900/40 p-5 rounded-2xl border border-slate-800/50 space-y-4 shadow-sm animate-fade-in";
-                sceneElement.innerHTML = `
-                    <div class="flex flex-wrap justify-between items-start gap-3 border-b border-slate-800/60 pb-3">
-                        <p class="text-xs sm:text-sm font-medium text-slate-300 max-w-xl leading-relaxed">
-                            <span class="text-cyan-400 font-bold font-mono mr-1">Scene #${i+1}</span> "${line}"
-                        </p>
-                        <div class="flex gap-1 text-[10px] bg-slate-950 px-2.5 py-0.5 rounded-md text-cyan-400 font-mono tracking-wider border border-cyan-900/30 uppercase font-bold">
-                            Tags: ${displayKeywords.join(', ')}
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 video-grid-target">
-                        <div class="col-span-full text-center py-4 text-xs text-slate-600 animate-pulse font-light tracking-wide">Querying remote stock assets...</div>
-                    </div>
-                `;
-                container.appendChild(sceneElement);
-
-                await dispatchMediaRequests(displayKeywords, sceneElement.querySelector('.video-grid-target'));
-                
-                if (i < lines.length - 1) {
-                    await new Promise(resolve => setTimeout(resolve, 1200));
-                }
-            }
-
-            loader.classList.add('hidden');
-            status.textContent = `Completed (${lines.length} Sequences Mixed)`;
-        });
-
-        function extractKeywords(text) {
-            const stopWords = new Set(['i','me','my','the','and','but','if','or','because','as','until','while','of','at','by','for','with','about','in','on','at','under','underneath','this','that','these','those','then']);
-            return text.toLowerCase().replace(/[^a-zA-Z\s]/g, '').split(/\s+/).filter(word => word.length > 2 && !stopWords.has(word)).slice(0, 3);
-        }
-
-        async function dispatchMediaRequests(keywords, gridTarget) {
-            const query = encodeURIComponent(keywords.join(' '));
-            let collectedPool = [];
-            let seenUrls = new Set();
-
-            if (API_CONFIG.PEXELS_API_KEY && API_CONFIG.PEXELS_API_KEY !== "YOUR_PEXELS_API_KEY_HERE") {
-                try {
-                    const res = await fetch(`https://api.pexels.com/videos/search?query=${query}&per_page=8&orientation=landscape`, { 
-                        headers: { Authorization: API_CONFIG.PEXELS_API_KEY }
-                    });
-                    if (res.ok) {
-                        const data = await res.json();
-                        if (data.videos) {
-                            data.videos.forEach(v => {
-                                const file = v.video_files.find(f => f.quality === 'hd' || f.width >= 1280) || v.video_files[0];
-                                if (file && !seenUrls.has(file.link)) {
-                                    seenUrls.add(file.link);
-                                    collectedPool.push({ source: 'Pexels Video', videoUrl: file.link, previewImg: v.image });
-                                }
-                            });
-                        }
-                    }
-                } catch (e) { console.error("Pexels lookup fault", e); }
-            }
-
-            if (API_CONFIG.PIXABAY_API_KEY && API_CONFIG.PIXABAY_API_KEY !== "YOUR_PIXABAY_API_KEY_HERE" && collectedPool.length < 6) {
-                try {
-                    const res = await fetch(`https://pixabay.com/api/videos/?key=${API_CONFIG.PIXABAY_API_KEY}&q=${query}&per_page=8&orientation=landscape`);
-                    if (res.ok) {
-                        const data = await res.json();
-                        if (data.hits) {
-                            data.hits.forEach(v => {
-                                const file = v.videos.medium || v.videos.small;
-                                if (file && !seenUrls.has(file.url)) {
-                                    seenUrls.add(file.url);
-                                    collectedPool.push({ source: 'Pixabay Video', videoUrl: file.url, previewImg: `https://i.vimeocdn.com/video/${v.picture_id}_640x360.jpg` });
-                                }
-                            });
-                        }
-                    }
-                } catch (e) { console.error("Pixabay lookup fault", e); }
-            }
-
-            if (collectedPool.length < 6) {
-                let matchedFallbacks = premiumVideoPool.filter(item => item.tags.some(tag => keywords.includes(tag)));
-                let allFallbacks = [...premiumVideoPool].sort(() => 0.5 - Math.random());
-                let combinedFallbacks = [...matchedFallbacks, ...allFallbacks];
-
-                for (let item of combinedFallbacks) {
-                    if (collectedPool.length >= 6) break;
-                    if (!seenUrls.has(item.url)) {
-                        seenUrls.add(item.url);
-                        collectedPool.push({ source: item.engine, videoUrl: item.url, previewImg: item.thumb });
-                    }
-                }
-            }
-
-            collectedPool = collectedPool.slice(0, 6);
-
-            gridTarget.innerHTML = '';
-            collectedPool.forEach((vid) => {
-                const card = document.createElement('div');
-                card.className = "relative group aspect-video bg-slate-950 rounded-xl overflow-hidden border border-slate-800/40 video-card shadow-lg transition-all duration-300 hover:border-cyan-500/30 hover:shadow-[0_4px_20px_rgba(6,182,212,0.1)]";
-                card.innerHTML = `
-                    <img src="${vid.previewImg}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out" onerror="this.src='https://images.pexels.com/photos/3165335/pexels-photo-3165335.jpeg?auto=compress&cs=tinysrgb&w=300'">
-                    <div class="absolute inset-0 bg-slate-950/90 opacity-0 video-overlay transition-opacity duration-200 flex flex-col justify-between p-3.5">
-                        <span class="self-start text-[9px] uppercase font-bold tracking-widest px-2 py-0.5 rounded bg-slate-900 border border-slate-800/80 text-cyan-400">
-                            ${vid.source}
-                        </span>
-                        <div class="space-y-2">
-                            <a href="${vid.videoUrl}" target="_blank" download class="w-full text-center bg-gradient-to-r from-cyan-400 to-indigo-500 hover:opacity-95 text-slate-950 text-xs font-black py-2 px-3 rounded-lg transition-all flex items-center justify-center gap-1.5 tracking-wider uppercase cursor-pointer shadow-md">
-                                📥 Download Video
-                            </a>
-                            <a href="${vid.videoUrl}" target="_blank" class="block text-center bg-slate-900/80 hover:bg-slate-800 text-slate-400 text-[10px] py-1.5 px-2 rounded-lg border border-slate-800/60 transition-colors tracking-wide">
-                                Preview Video
-                            </a>
-                        </div>
-                    </div>
-                `;
-                gridTarget.appendChild(card);
-            });
-        }
-    </script>
-</body>
-</html>
+            { tags: ['code', 'work', 'office',
