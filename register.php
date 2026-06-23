@@ -19,7 +19,6 @@ if (strlen($password) < 6) {
     exit;
 }
 
-// Check if user exists
 if (getUserByEmail($email)) {
     echo json_encode(['success' => false, 'message' => 'Email already registered']);
     exit;
