@@ -1,14 +1,14 @@
 <?php
-// deduct_credit.php - Deduct 1 credit with session update
+// deduct_credit.php - Deduct 1 credit
 require_once 'config.php';
 
 header('Content-Type: application/json');
 
-// Get user ID from session or POST
-$userId = $_SESSION['user_id'] ?? 0;
+$data = json_decode(file_get_contents('php://input'), true);
+$userId = $data['user_id'] ?? 0;
 
 if (!$userId) {
-    echo json_encode(['success' => false, 'message' => 'User not logged in']);
+    echo json_encode(['success' => false, 'message' => 'User not found']);
     exit;
 }
 
@@ -24,17 +24,14 @@ if ($credits > 0) {
         if (isset($_SESSION['user_id'])) {
             $sessionData = [
                 'user_id' => $_SESSION['user_id'],
-                'email' => $_SESSION['email'],
-                'username' => $_SESSION['username'],
+                'email' => $_SESSION['email'] ?? '',
+                'username' => $_SESSION['username'] ?? '',
                 'user_credits' => $newCredits
             ];
-            setcookie('user_session', json_encode($sessionData), time() + (86400 * 7), '/');
+            setcookie('user_session', json_encode($sessionData), time() + (86400 * 365), '/');
         }
         
-        echo json_encode([
-            'success' => true,
-            'credits' => $newCredits
-        ]);
+        echo json_encode(['success' => true, 'credits' => $newCredits]);
     } else {
         echo json_encode(['success' => false, 'message' => 'Failed to deduct credit']);
     }
