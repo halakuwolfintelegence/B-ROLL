@@ -1,31 +1,87 @@
 <?php
-// config.php - Complete with Session Fix
+// config.php - Complete Configuration with Lifetime Cookies
 session_start();
 
-// ===== SESSION FIX =====
-// Check if session is empty or expired
-if (!isset($_SESSION['user_id']) && isset($_COOKIE['user_session'])) {
-    // Try to restore session from cookie
+// ===== SESSION/COOKIE MANAGEMENT =====
+// Check if user is logged in via session
+$isLoggedIn = false;
+$userCredits = 0;
+$username = '';
+$userId = 0;
+
+// First check session
+if (isset($_SESSION['user_id'])) {
+    $isLoggedIn = true;
+    $userId = $_SESSION['user_id'];
+    $username = $_SESSION['username'] ?? '';
+    $userCredits = $_SESSION['user_credits'] ?? 0;
+} 
+// If session empty, check cookie (lifetime storage)
+elseif (isset($_COOKIE['user_session'])) {
     $sessionData = json_decode($_COOKIE['user_session'], true);
-    if ($sessionData) {
+    if ($sessionData && isset($sessionData['user_id'])) {
+        // Restore session from cookie
         $_SESSION['user_id'] = $sessionData['user_id'];
         $_SESSION['email'] = $sessionData['email'];
         $_SESSION['username'] = $sessionData['username'];
         $_SESSION['user_credits'] = $sessionData['user_credits'];
+        
+        $isLoggedIn = true;
+        $userId = $sessionData['user_id'];
+        $username = $sessionData['username'];
+        $userCredits = $sessionData['user_credits'];
     }
 }
 
-// Save session to cookie on every page load
-if (isset($_SESSION['user_id'])) {
-    $sessionData = [
-        'user_id' => $_SESSION['user_id'],
-        'email' => $_SESSION['email'],
-        'username' => $_SESSION['username'],
-        'user_credits' => $_SESSION['user_credits']
-    ];
-    setcookie('user_session', json_encode($sessionData), time() + (86400 * 7), '/'); // 7 days
+// If still not logged in, check remember token
+if (!$isLoggedIn && isset($_COOKIE['remember_token'])) {
+    $token = $_COOKIE['remember_token'];
+    $users = getUsers();
+    foreach ($users as $user) {
+        if (isset($user['remember_token']) && $user['remember_token'] === $token) {
+            // Auto login
+            $_SESSION['user_id'] = $user['id'];
+            $_SESSION['email'] = $user['email'];
+            $_SESSION['username'] = $user['username'];
+            $_SESSION['user_credits'] = $user['credits'];
+            
+            // Refresh cookie
+            $sessionData = [
+                'user_id' => $user['id'],
+                'email' => $user['email'],
+                'username' => $user['username'],
+                'user_credits' => $user['credits']
+            ];
+            setcookie('user_session', json_encode($sessionData), time() + (86400 * 365), '/'); // 1 Year
+            setcookie('remember_token', $token, time() + (86400 * 365), '/'); // 1 Year
+            
+            $isLoggedIn = true;
+            $userId = $user['id'];
+            $username = $user['username'];
+            $userCredits = $user['credits'];
+            break;
+        }
+    }
 }
 
+// Update credit display from database if needed
+if ($isLoggedIn && $userId > 0) {
+    $dbCredits = getUserCredits($userId);
+    if ($dbCredits != $userCredits) {
+        $userCredits = $dbCredits;
+        $_SESSION['user_credits'] = $dbCredits;
+        // Update cookie
+        $sessionData = [
+            'user_id' => $userId,
+            'email' => $_SESSION['email'] ?? '',
+            'username' => $username,
+            'user_credits' => $dbCredits
+        ];
+        setcookie('user_session', json_encode($sessionData), time() + (86400 * 365), '/');
+    }
+}
+
+// ===== JSON STORAGE =====
 $usersFile = __DIR__ . '/users.json';
 
 // Initialize users file if not exists
@@ -58,13 +114,6 @@ function getNextId() {
     global $usersFile;
     $data = json_decode(file_get_contents($usersFile), true);
     return $data['next_id'] ?? 1;
-}
-
-function updateNextId($id) {
-    global $usersFile;
-    $data = json_decode(file_get_contents($usersFile), true);
-    $data['next_id'] = $id;
-    file_put_contents($usersFile, json_encode($data, JSON_PRETTY_PRINT));
 }
 
 function getUserByEmail($email) {
@@ -129,6 +178,20 @@ function deductCredit($userId) {
     $credits = getUserCredits($userId);
     if ($credits > 0) {
         return updateUserCredits($userId, -1);
+    }
+    return false;
+}
+
+function updateRememberToken($userId, $token) {
+    global $usersFile;
+    $data = json_decode(file_get_contents($usersFile), true);
+    
+    foreach ($data['users'] as &$user) {
+        if ($user['id'] == $userId) {
+            $user['remember_token'] = $token;
+            file_put_contents($usersFile, json_encode($data, JSON_PRETTY_PRINT));
+            return true;
+        }
     }
     return false;
 }
