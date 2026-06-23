@@ -451,4 +451,244 @@ Take a deep breath and connect with the calm, morning nature.
             { tags: ['ai', 'tech', 'future', 'data', 'work'], url: 'https://assets.mixkit.co/videos/preview/mixkit-man-holding-a-smartphone-with-a-blue-screen-40176-large.mp4', thumb: 'https://images.pexels.com/photos/6153354/pexels-photo-6153354.jpeg?auto=compress&cs=tinysrgb&w=400', engine: 'Artgrid Stream Node' },
             { tags: ['cyberpunk', 'city', 'night', 'rain', 'neon'], url: 'https://assets.mixkit.co/videos/preview/mixkit-time-lapse-of-a-city-at-night-4158-large.mp4', thumb: 'https://images.pexels.com/photos/1612513/pexels-photo-1612513.jpeg?auto=compress&cs=tinysrgb&w=400', engine: 'Coverr Premium Video' },
             { tags: ['nature', 'forest', 'calm', 'trees', 'morning'], url: 'https://assets.mixkit.co/videos/preview/mixkit-aerial-view-of-a-dense-forest-2280-large.mp4', thumb: 'https://images.pexels.com/photos/3225517/pexels-photo-3225517.jpeg?auto=compress&cs=tinysrgb&w=400', engine: 'Mixkit Video Node' },
-            { tags: ['code', 'work', 'office',
+            { tags: ['code', 'work', 'office', 'software', 'ai'], url: 'https://assets.mixkit.co/videos/preview/mixkit-coding-on-a-computer-screen-with-a-neon-light-42217-large.mp4', thumb: 'https://images.pexels.com/photos/546814/pexels-photo-546814.jpeg?auto=compress&cs=tinysrgb&w=400', engine: 'Coverr Core Video' },
+            { tags: ['business', 'team', 'meeting', 'work'], url: 'https://assets.mixkit.co/videos/preview/mixkit-hands-of-a-man-typing-on-a-laptop-4173-large.mp4', thumb: 'https://images.pexels.com/photos/3183150/pexels-photo-3183150.jpeg?auto=compress&cs=tinysrgb&w=400', engine: 'Storyblocks Video Node' },
+            { tags: ['ocean', 'water', 'beach', 'waves', 'nature'], url: 'https://assets.mixkit.co/videos/preview/mixkit-waves-coming-to-the-beach-5016-large.mp4', thumb: 'https://images.pexels.com/photos/1001682/pexels-photo-1001682.jpeg?auto=compress&cs=tinysrgb&w=400', engine: 'Envato Elements Video' },
+            { tags: ['space', 'stars', 'galaxy', 'universe', 'future'], url: 'https://assets.mixkit.co/videos/preview/mixkit-stars-in-space-1610-large.mp4', thumb: 'https://images.pexels.com/photos/116975/pexels-photo-116975.jpeg?auto=compress&cs=tinysrgb&w=400', engine: 'Videezy Pro Video' },
+            { tags: ['cyberpunk', 'neon', 'city', 'night'], url: 'https://assets.mixkit.co/videos/preview/mixkit-neon-light-from-a-building-signage-at-night-42220-large.mp4', thumb: 'https://images.pexels.com/photos/2387873/pexels-photo-2387873.jpeg?auto=compress&cs=tinysrgb&w=400', engine: 'Cyber Matrix Node' },
+            { tags: ['nature', 'calm', 'morning', 'water'], url: 'https://assets.mixkit.co/videos/preview/mixkit-sunlight-filtering-through-trees-near-a-river-43034-large.mp4', thumb: 'https://images.pexels.com/photos/1424971/pexels-photo-1424971.jpeg?auto=compress&cs=tinysrgb&w=400', engine: 'Vidsplay HD Node' },
+            { tags: ['ai', 'tech', 'code', 'data'], url: 'https://assets.mixkit.co/videos/preview/mixkit-abstract-laser-lights-background-41855-large.mp4', thumb: 'https://images.pexels.com/photos/2582937/pexels-photo-2582937.jpeg?auto=compress&cs=tinysrgb&w=400', engine: 'MotionArray Core' }
+        ];
+
+        // ===== IMPROVED TAG EXTRACTION - NOW CAPTURES 10+ TAGS =====
+        function extractKeywords(text) {
+            const words = text.toLowerCase().replace(/[^a-zA-Z\s]/g, '').split(/\s+/);
+            
+            const stopWords = new Set([
+                'i', 'me', 'my', 'the', 'and', 'but', 'if', 'or', 'because', 'as', 'until', 
+                'while', 'of', 'at', 'by', 'for', 'with', 'about', 'in', 'on', 'at', 'under', 
+                'underneath', 'this', 'that', 'these', 'those', 'then', 'a', 'an', 'to', 'from',
+                'into', 'onto', 'upon', 'without', 'through', 'during', 'including', 'towards',
+                'upon', 'among', 'between', 'within', 'beyond', 'across', 'around', 'behind',
+                'below', 'beneath', 'beside', 'besides', 'between', 'beyond', 'by', 'despite',
+                'except', 'for', 'from', 'in', 'inside', 'into', 'like', 'near', 'of', 'off',
+                'on', 'onto', 'out', 'outside', 'over', 'per', 'plus', 'round', 'since', 'than',
+                'through', 'to', 'toward', 'towards', 'under', 'unlike', 'until', 'up', 'upon',
+                'versus', 'via', 'with', 'within', 'without', 'is', 'am', 'are', 'was', 'were',
+                'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would',
+                'shall', 'should', 'may', 'might', 'must', 'can', 'could'
+            ]);
+            
+            let wordScores = {};
+            
+            words.forEach(word => {
+                if (word.length > 2 && !stopWords.has(word)) {
+                    wordScores[word] = (wordScores[word] || 0) + 1;
+                }
+            });
+            
+            let scoredWords = Object.keys(wordScores).map(word => ({
+                word: word,
+                score: wordScores[word],
+                lengthBonus: word.length > 6 ? 2 : word.length > 4 ? 1 : 0,
+                uniquenessBonus: wordScores[word] === 1 ? 1 : 0
+            }));
+            
+            scoredWords.sort((a, b) => {
+                let scoreA = a.score + a.lengthBonus + a.uniquenessBonus;
+                let scoreB = b.score + b.lengthBonus + b.uniquenessBonus;
+                return scoreB - scoreA;
+            });
+            
+            let topTags = scoredWords.slice(0, 10).map(item => item.word);
+            
+            if (topTags.length === 0) {
+                const importantWords = words.filter(w => w.length > 3 && !stopWords.has(w));
+                topTags = importantWords.slice(0, 10);
+            }
+            
+            if (topTags.length === 0) {
+                topTags = ['abstract', 'motion', 'dynamic', 'visual', 'creative'];
+            }
+            
+            return topTags;
+        }
+
+        document.getElementById('processBtn').addEventListener('click', async () => {
+            <?php if (!$isLoggedIn): ?>
+                alert('Please login or register first to generate videos!');
+                openModal('loginModal');
+                return;
+            <?php endif; ?>
+
+            const scriptText = document.getElementById('scriptInput').value.trim();
+            if (!scriptText) { alert('Please enter your script parameters into the workspace.'); return; }
+
+            const creditDisplay = document.getElementById('creditDisplay');
+            let credits = parseInt(creditDisplay.textContent);
+            
+            if (isNaN(credits) || credits < 1) {
+                alert('⚠️ You have 0 credits! Please buy more credits to continue.');
+                openModal('buyCreditsModal');
+                return;
+            }
+
+            const container = document.getElementById('resultsContainer');
+            const loader = document.getElementById('loader');
+            const loaderText = document.getElementById('loaderText');
+            const status = document.getElementById('statusBadge');
+            
+            container.innerHTML = '';
+            loader.classList.remove('hidden');
+            status.classList.remove('hidden');
+            status.textContent = 'Mapping Scenes...';
+
+            try {
+                await fetch('deduct_credit.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: USER_ID })
+                });
+                const newCredits = credits - 1;
+                creditDisplay.textContent = newCredits;
+                document.getElementById('creditWarning').textContent = newCredits;
+            } catch (e) {
+                console.error('Credit deduction failed');
+            }
+
+            const lines = scriptText.split(/\n+|(?<=[.!?])\s+(?=[A-Z])/).map(l => l.trim()).filter(l => l.length > 5);
+
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+                loaderText.textContent = `AI Processing Sequence #${i+1}...`;
+                
+                const keywords = extractKeywords(line);
+                const displayKeywords = keywords.length > 0 ? keywords : ['abstract', 'motion'];
+
+                const sceneElement = document.createElement('div');
+                sceneElement.className = "bg-slate-900/40 p-5 rounded-2xl border border-slate-800/50 space-y-4 shadow-sm animate-fade-in";
+
+                // Show first 5 tags, rest in tooltip
+                const displayTags = displayKeywords.slice(0, 5);
+                const remainingTags = displayKeywords.slice(5);
+
+                sceneElement.innerHTML = `
+                    <div class="flex flex-wrap justify-between items-start gap-3 border-b border-slate-800/60 pb-3">
+                        <p class="text-xs sm:text-sm font-medium text-slate-300 max-w-xl leading-relaxed">
+                            <span class="text-cyan-400 font-bold font-mono mr-1">Scene #${i+1}</span> "${line}"
+                        </p>
+                        <div class="flex flex-wrap gap-1 max-w-[300px] justify-end">
+                            ${displayTags.map(tag => `
+                                <span class="tag-badge">${tag}</span>
+                            `).join('')}
+                            ${remainingTags.length > 0 ? `
+                                <span class="tag-more" title="All tags: ${remainingTags.join(', ')}">
+                                    +${remainingTags.length}
+                                </span>
+                            ` : ''}
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 video-grid-target">
+                        <div class="col-span-full text-center py-4 text-xs text-slate-600 animate-pulse font-light tracking-wide">Querying remote stock assets...</div>
+                    </div>
+                `;
+                container.appendChild(sceneElement);
+
+                await dispatchMediaRequests(displayKeywords, sceneElement.querySelector('.video-grid-target'));
+                
+                if (i < lines.length - 1) {
+                    await new Promise(resolve => setTimeout(resolve, 1200));
+                }
+            }
+
+            loader.classList.add('hidden');
+            status.textContent = `Completed (${lines.length} Sequences Mixed)`;
+        });
+
+        async function dispatchMediaRequests(keywords, gridTarget) {
+            const query = encodeURIComponent(keywords.join(' '));
+            let collectedPool = [];
+            let seenUrls = new Set();
+
+            if (API_CONFIG.PEXELS_API_KEY && API_CONFIG.PEXELS_API_KEY !== "YOUR_PEXELS_API_KEY_HERE") {
+                try {
+                    const res = await fetch(`https://api.pexels.com/videos/search?query=${query}&per_page=8&orientation=landscape`, { 
+                        headers: { Authorization: API_CONFIG.PEXELS_API_KEY }
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data.videos) {
+                            data.videos.forEach(v => {
+                                const file = v.video_files.find(f => f.quality === 'hd' || f.width >= 1280) || v.video_files[0];
+                                if (file && !seenUrls.has(file.link)) {
+                                    seenUrls.add(file.link);
+                                    collectedPool.push({ source: 'Pexels Video', videoUrl: file.link, previewImg: v.image });
+                                }
+                            });
+                        }
+                    }
+                } catch (e) { console.error("Pexels lookup fault", e); }
+            }
+
+            if (API_CONFIG.PIXABAY_API_KEY && API_CONFIG.PIXABAY_API_KEY !== "YOUR_PIXABAY_API_KEY_HERE" && collectedPool.length < 6) {
+                try {
+                    const res = await fetch(`https://pixabay.com/api/videos/?key=${API_CONFIG.PIXABAY_API_KEY}&q=${query}&per_page=8&orientation=landscape`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data.hits) {
+                            data.hits.forEach(v => {
+                                const file = v.videos.medium || v.videos.small;
+                                if (file && !seenUrls.has(file.url)) {
+                                    seenUrls.add(file.url);
+                                    collectedPool.push({ source: 'Pixabay Video', videoUrl: file.url, previewImg: `https://i.vimeocdn.com/video/${v.picture_id}_640x360.jpg` });
+                                }
+                            });
+                        }
+                    }
+                } catch (e) { console.error("Pixabay lookup fault", e); }
+            }
+
+            if (collectedPool.length < 6) {
+                let matchedFallbacks = premiumVideoPool.filter(item => 
+                    item.tags.some(tag => keywords.includes(tag))
+                );
+                let allFallbacks = [...premiumVideoPool].sort(() => 0.5 - Math.random());
+                let combinedFallbacks = [...matchedFallbacks, ...allFallbacks];
+
+                for (let item of combinedFallbacks) {
+                    if (collectedPool.length >= 6) break;
+                    if (!seenUrls.has(item.url)) {
+                        seenUrls.add(item.url);
+                        collectedPool.push({ source: item.engine, videoUrl: item.url, previewImg: item.thumb });
+                    }
+                }
+            }
+
+            collectedPool = collectedPool.slice(0, 6);
+
+            gridTarget.innerHTML = '';
+            collectedPool.forEach((vid) => {
+                const card = document.createElement('div');
+                card.className = "relative group aspect-video bg-slate-950 rounded-xl overflow-hidden border border-slate-800/40 video-card shadow-lg transition-all duration-300 hover:border-cyan-500/30 hover:shadow-[0_4px_20px_rgba(6,182,212,0.1)]";
+                card.innerHTML = `
+                    <img src="${vid.previewImg}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out" onerror="this.src='https://images.pexels.com/photos/3165335/pexels-photo-3165335.jpeg?auto=compress&cs=tinysrgb&w=300'">
+                    <div class="absolute inset-0 bg-slate-950/90 opacity-0 video-overlay transition-opacity duration-200 flex flex-col justify-between p-3.5">
+                        <span class="self-start text-[9px] uppercase font-bold tracking-widest px-2 py-0.5 rounded bg-slate-900 border border-slate-800/80 text-cyan-400">
+                            ${vid.source}
+                        </span>
+                        <div class="space-y-2">
+                            <a href="${vid.videoUrl}" target="_blank" download class="w-full text-center bg-gradient-to-r from-cyan-400 to-indigo-500 hover:opacity-95 text-slate-950 text-xs font-black py-2 px-3 rounded-lg transition-all flex items-center justify-center gap-1.5 tracking-wider uppercase cursor-pointer shadow-md">
+                                📥 Download Video
+                            </a>
+                            <a href="${vid.videoUrl}" target="_blank" class="block text-center bg-slate-900/80 hover:bg-slate-800 text-slate-400 text-[10px] py-1.5 px-2 rounded-lg border border-slate-800/60 transition-colors tracking-wide">
+                                Preview Video
+                            </a>
+                        </div>
+                    </div>
+                `;
+                gridTarget.appendChild(card);
+            });
+        }
+    </script>
+</body>
+</html>
