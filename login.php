@@ -1,5 +1,5 @@
 <?php
-// login.php - Handle login with session fix
+// login.php - Handle login with lifetime cookies
 require_once 'config.php';
 
 header('Content-Type: application/json');
@@ -7,6 +7,7 @@ header('Content-Type: application/json');
 $data = json_decode(file_get_contents('php://input'), true);
 $email = $data['email'] ?? '';
 $password = $data['password'] ?? '';
+$remember = $data['remember'] ?? true;
 
 if (empty($email) || empty($password)) {
     echo json_encode(['success' => false, 'message' => 'Email and password required']);
@@ -23,12 +24,10 @@ if (!$user) {
 // Check password (MD5 or bcrypt)
 $passwordValid = false;
 
-// Check MD5
 if (md5($password) === $user['password']) {
     $passwordValid = true;
 }
 
-// Check bcrypt
 if (!$passwordValid && password_verify($password, $user['password'])) {
     $passwordValid = true;
 }
@@ -40,14 +39,21 @@ if ($passwordValid) {
     $_SESSION['username'] = $user['username'];
     $_SESSION['user_credits'] = $user['credits'];
     
-    // Save to cookie for persistence
+    // Set lifetime cookie (1 year)
     $sessionData = [
         'user_id' => $user['id'],
         'email' => $user['email'],
         'username' => $user['username'],
         'user_credits' => $user['credits']
     ];
-    setcookie('user_session', json_encode($sessionData), time() + (86400 * 7), '/');
+    
+    $expiry = $remember ? time() + (86400 * 365) : time() + (86400 * 7);
+    setcookie('user_session', json_encode($sessionData), $expiry, '/');
+    
+    // Generate remember token
+    $token = bin2hex(random_bytes(32));
+    setcookie('remember_token', $token, $expiry, '/');
+    updateRememberToken($user['id'], $token);
     
     echo json_encode(['success' => true, 'credits' => $user['credits']]);
 } else {
